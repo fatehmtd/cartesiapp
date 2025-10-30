@@ -1,0 +1,14 @@
+{
+  "name": "cartesiapp",
+  "version": "0.1.0",
+  "description": "A C++ wrapper library for audio processing with REST API and WebSocket support using Cartesia.io services.",
+  "homepage": "https://github.com/fatehmtd/cartesiapp",
+  "dependencies": [
+    "boost-system",
+    "boost-thread", 
+    "boost-beast",
+    "openssl",
+    "spdlog",
+    "nlohmann-json"
+  ]
+}
