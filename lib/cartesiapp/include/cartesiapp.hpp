@@ -33,8 +33,7 @@ namespace cartesiapp {
          * @param request The VoiceListRequest containing query parameters.
          * @return A VoiceListPage containing the list of voices.
          */
-        response::VoiceListPage getVoiceList(request::VoiceListRequest& request) const;
-
+        response::VoiceListPage getVoiceList(const request::VoiceListRequest& request) const;
 
         /**
          * @brief Retrieves information about a specific voice by its ID.
@@ -46,7 +45,23 @@ namespace cartesiapp {
         /**
          * @brief Performs a Text-to-Speech byte synthesis request.
          */
-        std::string ttsBytes(request::TTSBytesRequest& request) const;
+        std::string ttsBytes(const request::TTSBytesRequest& request) const;
+
+        /**
+         * @brief Performs a Speech-to-Text batch transcription using an audio file.
+         * @param filePath The path to the audio file to transcribe.
+         * @param request The STTBatchRequest containing transcription parameters.
+         * @return A SttBatchResponse containing the transcription result.
+         */
+        response::SttBatchResponse sttWithFile(const std::string& filePath, const request::STTBatchRequest& request) const;
+
+        /**
+         * @brief Performs a Speech-to-Text batch transcription using raw audio bytes.
+         * @param audioBytes The raw audio bytes to transcribe.
+         * @param request The STTBatchRequest containing transcription parameters.
+         * @return A SttBatchResponse containing the transcription result.
+         */
+        response::SttBatchResponse sttWithBytes(const std::vector<char>& audioBytes, const request::STTBatchRequest& request) const;
 
         private:
         std::unique_ptr<CartesiaClientImpl> _clientImpl;

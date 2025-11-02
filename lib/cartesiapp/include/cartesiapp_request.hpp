@@ -17,7 +17,6 @@ namespace cartesiapp::request {
         constexpr const char* USER_AGENT = "CartesiaCPP/0.1.0";
 
         // headers
-        constexpr const char* HEADER_API_KEY = "X-API-KEY";
         constexpr const char* HEADER_CARTESIA_VERSION = "Cartesia-Version";
 
         // endpoints
@@ -118,6 +117,8 @@ namespace cartesiapp::request {
      */
     namespace container {
         constexpr const char* RAW = "raw";
+        constexpr const char* WAV = "wav";
+        constexpr const char* MP3 = "mp3";
     }
 
     /**
@@ -179,6 +180,8 @@ namespace cartesiapp::request {
         std::string container = container::RAW;
         std::string encoding = tts_encoding::PCM_S16LE;
         int sample_rate = sample_rate::SR_24000;
+        
+        // used for mp3 container
         std::optional<int> bit_rate;
 
         std::string toJson() const;
@@ -247,13 +250,38 @@ namespace cartesiapp::request {
         std::string toQueryParams() const;
     };
 
+    /**
+     * @brief Supported STT model identifiers, currently only "ink-whisper"
+     */
+    namespace stt_model {
+        constexpr const char* INK_WHISPER = "ink-whisper";
+    }
+
+    /**
+     * @brief Supported timestamp granularities for STT transcription, currently only "word"
+     */
+    namespace timestamp_granularity {
+        constexpr const char* WORD = "word";
+    }
+
+    /**
+     * @brief Request structure for Speech-to-Text batch transcription
+     */
     struct CARTESIAPP_EXPORT STTBatchRequest {
         // query
         std::optional<std::string> encoding = stt_encoding::PCM_S16LE;
         std::optional<int> sample_rate;
 
         // body
-        std::optional<std::string> model;
+        std::string model = stt_model::INK_WHISPER;
+
+        std::optional<std::string> language;
+
+        // if not provided, defaults to WORD
+        std::vector<std::string> timestamp_granularities = { timestamp_granularity::WORD };
+
+        // creates query parameters string
+        std::string toQueryParams() const;
     };
 }
 

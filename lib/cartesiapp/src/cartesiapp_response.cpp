@@ -44,3 +44,30 @@ VoiceListPage cartesiapp::response::VoiceListPage::fromJson(const std::string& j
     }
     return voiceListPage;
 }
+
+cartesiapp::response::SttBatchResponse::WordTiming cartesiapp::response::SttBatchResponse::WordTiming::fromJson(const std::string& jsonStr)
+{
+    nlohmann::json jsonObj = nlohmann::json::parse(jsonStr);
+    WordTiming wordTiming;
+    wordTiming.word = jsonObj["word"].get<std::string>();
+    wordTiming.start = jsonObj["start"].get<float>();
+    wordTiming.end = jsonObj["end"].get<float>();
+    return wordTiming;
+}
+
+cartesiapp::response::SttBatchResponse cartesiapp::response::SttBatchResponse::fromJson(const std::string& jsonStr)
+{
+    nlohmann::json jsonObj = nlohmann::json::parse(jsonStr);
+    SttBatchResponse sttResponse;
+    sttResponse.type = jsonObj["type"].get<std::string>();
+    sttResponse.text = jsonObj["text"].get<std::string>();
+    sttResponse.language = jsonObj["language"].get<std::string>();
+    sttResponse.duration = jsonObj["duration"].get<float>();
+    sttResponse.is_final = jsonObj["is_final"].get<bool>();
+    sttResponse.request_id = jsonObj["request_id"].get<std::string>();
+    
+    for (const auto& wordJson : jsonObj["words"]) {
+        sttResponse.words.push_back(SttBatchResponse::WordTiming::fromJson(wordJson.dump()));
+    }
+    return sttResponse;
+}
