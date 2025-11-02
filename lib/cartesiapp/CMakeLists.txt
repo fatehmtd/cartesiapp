@@ -41,7 +41,13 @@ include_directories(${OPENSSL_INCLUDE_DIR})
 # define the library
 add_library(cartesiapp STATIC
     src/cartesiapp.cpp
+    src/cartesiapp_request.cpp
+    src/cartesiapp_response.cpp
     include/cartesiapp.hpp
+)
+
+target_include_directories(cartesiapp PRIVATE
+    ./include
 )
 
 target_link_libraries(cartesiapp
@@ -55,5 +61,28 @@ target_link_libraries(cartesiapp
 include(GenerateExportHeader)
 generate_export_header(cartesiapp
     BASE_NAME cartesiapp
-    EXPORT_FILE_NAME cartesiapp_export.h
+    EXPORT_FILE_NAME cartesiapp_export.hpp
 )
+
+target_include_directories(cartesiapp PUBLIC
+    $<INSTALL_INTERFACE:include> # For installed package (optional but good practice)
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include> # For direct build
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}> # To export the symbols header
+    #PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include/gladiapp # to simplify the internal include files
+)
+
+# Installation rules
+install(TARGETS cartesiapp
+    EXPORT cartesiappTargets
+    RUNTIME DESTINATION bin
+    LIBRARY DESTINATION lib
+    ARCHIVE DESTINATION lib
+    INCLUDES DESTINATION include)
+
+install(DIRECTORY include/
+    DESTINATION include/cartesiapp
+    FILES_MATCHING PATTERN "*.hpp"
+    PATTERN "impl" EXCLUDE)
+
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/cartesiapp_export.hpp
+    DESTINATION include/cartesiapp)
