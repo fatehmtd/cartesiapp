@@ -99,3 +99,18 @@ std::string cartesiapp::request::GenerationConfig::toJson() const
     jsonObj["emotion"] = emotion;
     return jsonObj.dump();
 }
+
+std::string cartesiapp::request::STTBatchRequest::toQueryParams() const
+{
+    std::stringstream queryParams;
+    bool firstParam = true;
+    if (encoding) {
+        queryParams << (firstParam ? "?" : "&") << "encoding=" << encoding.value();
+        firstParam = false;
+    }
+    if (sample_rate) {
+        queryParams << (firstParam ? "?" : "&") << "sample_rate=" << sample_rate.value();
+        firstParam = false;
+    }
+    return queryParams.str();
+}

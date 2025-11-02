@@ -45,6 +45,32 @@ namespace cartesiapp::response {
 
         static VoiceListPage fromJson(const std::string& jsonStr);
     };
+
+    /**
+     * Struct to hold STT batch response information
+     */
+    struct CARTESIAPP_EXPORT SttBatchResponse {
+        std::string type;
+        std::string text;
+        std::string language;
+        float duration;
+        std::string request_id;
+        bool is_final;
+
+        /**
+         * Struct to hold word timing information for STT
+         */
+        struct WordTiming {
+            std::string word;
+            float start;
+            float end;
+
+            static WordTiming fromJson(const std::string& jsonStr);
+        };
+        std::vector<WordTiming> words;
+
+        static SttBatchResponse fromJson(const std::string& jsonStr);
+    };
 }
 
 #endif // CARTESIAPP_RESPONSE_HPP

@@ -15,6 +15,7 @@
 #include <iostream>
 #include <fstream>
 #include <nlohmann/json.hpp>
+#include <chrono>
 
 // for convenience
 namespace beast = boost::beast;
@@ -52,7 +53,6 @@ namespace cartesiapp {
 
             httpRequest.set(http::field::host, cartesiapp::request::constants::HOST);
             httpRequest.set(http::field::user_agent, cartesiapp::request::constants::USER_AGENT);
-            httpRequest.set(cartesiapp::request::constants::HEADER_API_KEY, _apiKey);
             httpRequest.set(cartesiapp::request::constants::HEADER_CARTESIA_VERSION, _apiVersion);
             httpRequest.set(http::field::connection, "close");
             httpRequest.prepare_payload();
@@ -77,10 +77,13 @@ namespace cartesiapp {
             spdlog::debug("Getting voice with ID: {}", voiceId);
             ssl::stream<beast::tcp_stream> sslStream = createSSLStream(_verifyCertificates);
 
+            // request url with voice id
+            std::string requestUrl = std::string(cartesiapp::request::constants::ENDPOINT_VOICES) + "/" + voiceId;
+
             // create the HTTP GET request
             http::request<http::empty_body> httpRequest{
                 http::verb::get,
-                std::string(cartesiapp::request::constants::ENDPOINT_VOICES) + "/" + voiceId,
+                requestUrl,
                 11
             };
 
@@ -104,18 +107,30 @@ namespace cartesiapp {
                 throw beast::system_error{ ec };
             }
 
-            return response::Voice::fromJson(httpResponse.body());
+            int code = httpResponse.result_int();
+            std::string response = std::move(httpResponse.body());
+
+            // check for non-200-series HTTP response code
+            if (code / 200 != 1) {
+                std::string errorMsg = "Error getting voice, HTTP code: " + std::to_string(code) + ", response: " + response;
+                throw spdlog::spdlog_ex(errorMsg, code);
+            }
+
+            return response::Voice::fromJson(response);
         }
 
-        response::VoiceListPage getVoiceList(request::VoiceListRequest& request) const {
+        response::VoiceListPage getVoiceList(const request::VoiceListRequest& request) const {
             std::string queryParams = request.toQueryParams();
             spdlog::debug("Getting voice list... query params: {}", queryParams);
             ssl::stream<beast::tcp_stream> sslStream = createSSLStream(_verifyCertificates);
 
+            // request url with query parameters
+            std::string requestUrl = cartesiapp::request::constants::ENDPOINT_VOICES + queryParams;
+
             // create the HTTP GET request
             http::request<http::empty_body> httpRequest{
                 http::verb::get,
-                cartesiapp::request::constants::ENDPOINT_VOICES + queryParams,
+                requestUrl,
                 11
             };
 
@@ -139,10 +154,19 @@ namespace cartesiapp {
                 throw beast::system_error{ ec };
             }
 
-            return response::VoiceListPage::fromJson(httpResponse.body());
+            int code = httpResponse.result_int();
+            std::string response = std::move(httpResponse.body());
+
+            // check for non-200-series HTTP response code
+            if (code / 200 != 1) {
+                std::string errorMsg = "Error getting voice list, HTTP code: " + std::to_string(code) + ", response: " + response;
+                throw spdlog::spdlog_ex(errorMsg, code);
+            }
+
+            return response::VoiceListPage::fromJson(response);
         }
 
-        std::string ttsBytes(request::TTSBytesRequest& request) const {
+        std::string ttsBytes(const request::TTSBytesRequest& request) const {
             spdlog::debug("Performing TTS Bytes request...");
 
             ssl::stream<beast::tcp_stream> sslStream = createSSLStream(_verifyCertificates);
@@ -157,7 +181,6 @@ namespace cartesiapp {
             httpRequest.set(http::field::host, cartesiapp::request::constants::HOST);
             httpRequest.set(http::field::user_agent, cartesiapp::request::constants::USER_AGENT);
             httpRequest.set(http::field::authorization, "Bearer " + _apiKey);
-            httpRequest.set(cartesiapp::request::constants::HEADER_API_KEY, _apiKey);
             httpRequest.set(cartesiapp::request::constants::HEADER_CARTESIA_VERSION, _apiVersion);
             httpRequest.set(http::field::content_type, "application/json");
             httpRequest.set(http::field::connection, "close");
@@ -187,6 +210,116 @@ namespace cartesiapp {
 
             std::string response = httpResponse.body();
             return response;
+        }
+
+        response::SttBatchResponse sttWithBytes(const std::vector<char>& audioBytes,
+            const request::STTBatchRequest& request,
+            const std::string& mime = "application/octet-stream") const {
+            spdlog::debug("Performing STT Batch request...");
+
+            ssl::stream<beast::tcp_stream> sslStream = createSSLStream(_verifyCertificates);
+
+            // request URL with query parameters
+            std::string requestUrl = cartesiapp::request::constants::ENDPOINT_STT + request.toQueryParams();
+
+            // create the HTTP POST request
+            http::request<http::vector_body<char>> httpRequest{
+                http::verb::post,
+                requestUrl,
+                11
+            };
+
+            httpRequest.set(http::field::host, cartesiapp::request::constants::HOST);
+            httpRequest.set(http::field::user_agent, cartesiapp::request::constants::USER_AGENT);
+            httpRequest.set(http::field::authorization, "Bearer " + _apiKey);
+            httpRequest.set(cartesiapp::request::constants::HEADER_CARTESIA_VERSION, _apiVersion);
+
+            // set connection to close after the transaction
+            httpRequest.set(http::field::connection, "close");
+
+            // Generate boundary for multipart form-data
+            std::string boundary = "----CartesiaPP-FormBoundary" + std::to_string(std::chrono::duration_cast<std::chrono::milliseconds>(
+                std::chrono::system_clock::now().time_since_epoch()).count());
+
+            // Set content type to multipart/form-data with boundary
+            httpRequest.set(http::field::content_type, "multipart/form-data; boundary=" + boundary);
+
+            // Build multipart form-data body using vector<char> to handle binary data properly
+            std::vector<char> formData;
+
+            auto appendString = [&formData](const std::string& str) {
+                formData.insert(formData.end(), str.begin(), str.end());
+                };
+
+            auto appendBoundary = [&formData, &boundary, appendString]() {
+                appendString("--" + boundary + "\r\n");
+                };
+
+            // Add model field
+            appendBoundary();
+            appendString("Content-Disposition: form-data; name=\"model\"\r\n\r\n");
+            appendString(request.model + "\r\n");
+
+            // Add language field (if available)
+            if (request.language.has_value()) {
+                appendBoundary();
+                appendString("Content-Disposition: form-data; name=\"language\"\r\n\r\n");
+                appendString(request.language.value() + "\r\n");
+            }
+
+            // Add timestamp granularities field (if available)
+            if (!request.timestamp_granularities.empty()) {
+                for (const auto& granularity : request.timestamp_granularities) {
+                    appendBoundary();
+                    appendString("Content-Disposition: form-data; name=\"timestamp_granularities[]\"\r\n\r\n");
+                    appendString(granularity + "\r\n");
+                }
+            }
+
+            // Add audio file field
+            appendBoundary();
+            appendString("Content-Disposition: form-data; name=\"file\"; filename=\"file\"\r\n");
+            // append the mime type
+            std::string contentType = "Content-Type: " + mime + "\r\n\r\n";
+            appendString(contentType);
+
+            // Append audio bytes directly
+            formData.insert(formData.end(), audioBytes.begin(), audioBytes.end());
+            appendString("\r\n");
+
+            appendString("--" + boundary + "--\r\n");
+
+            httpRequest.body() = std::move(formData);
+            httpRequest.prepare_payload();
+
+            // send the HTTP request to the remote host
+            http::write(sslStream, httpRequest);
+
+            // receive the HTTP response
+            beast::flat_buffer buffer;
+            http::response<http::string_body> httpResponse;
+            http::read(sslStream, buffer, httpResponse);
+
+            beast::error_code ec;
+            sslStream.shutdown(ec);
+
+            // check for errors
+            if (ec && ec != beast::errc::not_connected) {
+                throw beast::system_error{ ec };
+            }
+
+            int code = httpResponse.result_int();
+            std::string response = std::move(httpResponse.body());
+
+            // check for non-200-series HTTP response code
+            if (code / 200 != 1) {
+                std::string errorMsg = "Error transcribing audio, HTTP code: " + std::to_string(code) + ", response: " + response;
+                throw spdlog::spdlog_ex(errorMsg, code);
+            }
+
+            spdlog::debug("STT Batch response: {}", response);
+
+            return response::SttBatchResponse::fromJson(response);
         }
 
         private:
