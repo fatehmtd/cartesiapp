@@ -5,7 +5,30 @@
 #include <vector>
 #include <optional>
 
+#include "cartesiapp_export.hpp"
+
 namespace cartesiapp::request {
+
+    /**
+     * @brief Constants used across the Cartesia Library
+     */
+    namespace constants {
+        constexpr const char* HOST = "api.cartesia.ai";
+        constexpr const char* USER_AGENT = "CartesiaCPP/0.1.0";
+
+        // headers
+        constexpr const char* HEADER_API_KEY = "X-API-KEY";
+        constexpr const char* HEADER_CARTESIA_VERSION = "Cartesia-Version";
+
+        // endpoints
+        constexpr const char* ENDPOINT_API_STATUS_INFO = "/";
+        constexpr const char* ENDPOINT_VOICES = "/voices";
+        constexpr const char* ENDPOINT_TTS_BYTES = "/tts/bytes";
+        constexpr const char* ENDPOINT_TTS_SSE = "/tts/sse";
+        constexpr const char* ENDPOINT_TTS_WEBSOCKET = "/tts/websocket";
+        constexpr const char* ENDPOINT_STT = "/stt";
+        constexpr const char* ENDPOINT_STT_WEBSOCKET = "/stt/websocket";
+    }
 
     /**
      * @brief Supported API version identifiers
@@ -21,40 +44,64 @@ namespace cartesiapp::request {
      * @brief Emotion levels for voice synthesis
      */
     namespace emotion {
-        // Anger levels
-        constexpr const char* ANGER_LOWEST = "anger:lowest";
-        constexpr const char* ANGER_LOW = "anger:low";
-        constexpr const char* ANGER = "anger";
-        constexpr const char* ANGER_HIGH = "anger:high";
-        constexpr const char* ANGER_HIGHEST = "anger:highest";
-        
-        // Positivity levels
-        constexpr const char* POSITIVITY_LOWEST = "positivity:lowest";
-        constexpr const char* POSITIVITY_LOW = "positivity:low";
-        constexpr const char* POSITIVITY = "positivity";
-        constexpr const char* POSITIVITY_HIGH = "positivity:high";
-        constexpr const char* POSITIVITY_HIGHEST = "positivity:highest";
-        
-        // Surprise levels
-        constexpr const char* SURPRISE_LOWEST = "surprise:lowest";
-        constexpr const char* SURPRISE_LOW = "surprise:low";
-        constexpr const char* SURPRISE = "surprise";
-        constexpr const char* SURPRISE_HIGH = "surprise:high";
-        constexpr const char* SURPRISE_HIGHEST = "surprise:highest";
-        
-        // Sadness levels
-        constexpr const char* SADNESS_LOWEST = "sadness:lowest";
-        constexpr const char* SADNESS_LOW = "sadness:low";
-        constexpr const char* SADNESS = "sadness";
-        constexpr const char* SADNESS_HIGH = "sadness:high";
-        constexpr const char* SADNESS_HIGHEST = "sadness:highest";
-        
-        // Curiosity levels
-        constexpr const char* CURIOSITY_LOWEST = "curiosity:lowest";
-        constexpr const char* CURIOSITY_LOW = "curiosity:low";
-        constexpr const char* CURIOSITY = "curiosity";
-        constexpr const char* CURIOSITY_HIGH = "curiosity:high";
-        constexpr const char* CURIOSITY_HIGHEST = "curiosity:highest";
+        constexpr const char* NEUTRAL = "neutral";
+        constexpr const char* HAPPY = "happy";
+        constexpr const char* EXCITED = "excited";
+        constexpr const char* ENTHUSIASTIC = "enthusiastic";
+        constexpr const char* ELATED = "elated";
+        constexpr const char* EUPHORIC = "euphoric";
+        constexpr const char* TRIUMPHANT = "triumphant";
+        constexpr const char* AMAZED = "amazed";
+        constexpr const char* SURPRISED = "surprised";
+        constexpr const char* FLIRTATIOUS = "flirtatious";
+        constexpr const char* CURIOUS = "curious";
+        constexpr const char* CONTENT = "content";
+        constexpr const char* PEACEFUL = "peaceful";
+        constexpr const char* SERENE = "serene";
+        constexpr const char* CALM = "calm";
+        constexpr const char* GRATEFUL = "grateful";
+        constexpr const char* AFFECTIONATE = "affectionate";
+        constexpr const char* TRUST = "trust";
+        constexpr const char* SYMPATHETIC = "sympathetic";
+        constexpr const char* ANTICIPATION = "anticipation";
+        constexpr const char* MYSTERIOUS = "mysterious";
+        constexpr const char* ANGRY = "angry";
+        constexpr const char* MAD = "mad";
+        constexpr const char* OUTRAGED = "outraged";
+        constexpr const char* FRUSTRATED = "frustrated";
+        constexpr const char* AGITATED = "agitated";
+        constexpr const char* THREATENED = "threatened";
+        constexpr const char* DISGUSTED = "disgusted";
+        constexpr const char* CONTEMPT = "contempt";
+        constexpr const char* ENVIOUS = "envious";
+        constexpr const char* SARCASTIC = "sarcastic";
+        constexpr const char* IRONIC = "ironic";
+        constexpr const char* SAD = "sad";
+        constexpr const char* DEJECTED = "dejected";
+        constexpr const char* MELANCHOLIC = "melancholic";
+        constexpr const char* DISAPPOINTED = "disappointed";
+        constexpr const char* HURT = "hurt";
+        constexpr const char* GUILTY = "guilty";
+        constexpr const char* BORED = "bored";
+        constexpr const char* TIRED = "tired";
+        constexpr const char* REJECTED = "rejected";
+        constexpr const char* NOSTALGIC = "nostalgic";
+        constexpr const char* WISTFUL = "wistful";
+        constexpr const char* APOLOGETIC = "apologetic";
+        constexpr const char* HESITANT = "hesitant";
+        constexpr const char* INSECURE = "insecure";
+        constexpr const char* CONFUSED = "confused";
+        constexpr const char* RESIGNED = "resigned";
+        constexpr const char* ANXIOUS = "anxious";
+        constexpr const char* PANICKED = "panicked";
+        constexpr const char* ALARMED = "alarmed";
+        constexpr const char* SCARED = "scared";
+        constexpr const char* PROUD = "proud";
+        constexpr const char* CONFIDENT = "confident";
+        constexpr const char* DISTANT = "distant";
+        constexpr const char* SKEPTICAL = "skeptical";
+        constexpr const char* CONTEMPLATIVE = "contemplative";
+        constexpr const char* DETERMINED = "determined";
     }
 
     /**
@@ -67,13 +114,8 @@ namespace cartesiapp::request {
     }
 
     /**
-     * @brief Experimental controls for voice synthesis
+     * @brief Container formats for synthesized audio
      */
-    struct ExperimentalControls {
-        std::optional<int> speed;
-        std::vector<std::string> emotion;
-    };
-
     namespace container {
         constexpr const char* RAW = "raw";
     }
@@ -81,9 +123,21 @@ namespace cartesiapp::request {
     /**
      * @brief Encoding formats for synthesized audio
      */
-    namespace encoding {
+    namespace tts_encoding {
         constexpr const char* PCM_F32LE = "pcm_f32le";
         constexpr const char* PCM_S16LE = "pcm_s16le";
+        constexpr const char* PCM_MULAW = "pcm_mulaw";
+        constexpr const char* PCM_ALAW = "pcm_alaw";
+    }
+
+    /**
+     * @brief Encoding formats for speech-to-text audio
+     */
+    namespace stt_encoding {
+        constexpr const char* PCM_S16LE = "pcm_s16le";
+        constexpr const char* PCM_S32LE = "pcm_s32le";
+        constexpr const char* PCM_F16LE = "pcm_f16le";
+        constexpr const char* PCM_F32LE = "pcm_f32le";
         constexpr const char* PCM_MULAW = "pcm_mulaw";
         constexpr const char* PCM_ALAW = "pcm_alaw";
     }
@@ -112,9 +166,10 @@ namespace cartesiapp::request {
      * @brief Voice specifications for TTS synthesis
      */
     struct Voice {
-        std::string mode;
+        std::string mode = voice_mode::ID;
         std::string id;
-        std::optional<ExperimentalControls> __experimental_controls;
+
+        std::string toJson() const;
     };
 
     /**
@@ -122,9 +177,11 @@ namespace cartesiapp::request {
      */
     struct OutputFormat {
         std::string container = container::RAW;
-        std::string encoding = encoding::PCM_S16LE;
+        std::string encoding = tts_encoding::PCM_S16LE;
         int sample_rate = sample_rate::SR_24000;
         std::optional<int> bit_rate;
+
+        std::string toJson() const;
     };
 
     /**
@@ -138,16 +195,65 @@ namespace cartesiapp::request {
     }
 
     /**
+     * @brief Configuration for voice generation parameters
+     */
+    struct CARTESIAPP_EXPORT GenerationConfig {
+        float volume = 1.0f;
+        float speed = 1.0f;
+        std::string emotion = emotion::NEUTRAL;
+
+        std::string toJson() const;
+    };
+
+    /**
      * @brief Request structure for Text-to-Speech byte synthesis
      */
-    struct TTSBytesRequest {
+    struct CARTESIAPP_EXPORT TTSBytesRequest {
         std::string model_id = tts_model::SONIC_3;
         std::string transcript;
         Voice voice;
-        std::string language;
+        std::optional<std::string> language;
         OutputFormat output_format;
         std::optional<int> duration;
         std::optional<std::string> speed = speed::NORMAL;
+        std::optional<GenerationConfig> generation_config;
+        std::optional<std::string> pronunciation_dict_id;
+        std::optional<bool> save;
+
+        std::string toJson() const;
+    };
+
+    /**
+     * @brief Available voice genders for filtering
+     */
+    namespace voice_gender {
+        constexpr const char* MASCULINE = "masculine";
+        constexpr const char* FEMININE = "feminine";
+        constexpr const char* GENDER_NEUTRAL = "gender_neutral";
+    }
+
+    /**
+     * @brief Request structure for Voice List retrieval
+     */
+    struct CARTESIAPP_EXPORT VoiceListRequest {
+        std::optional<int> limit;
+        std::optional<std::string> start_after;
+        std::optional<std::string> end_before;
+        std::optional<bool> is_owner;
+        std::optional<bool> is_starred;
+        std::string gender = voice_gender::GENDER_NEUTRAL;
+        std::optional<std::vector<std::string>> expand;
+
+        std::string toQueryParams() const;
+    };
+
+    struct CARTESIAPP_EXPORT STTBatchRequest {
+        // query
+        std::optional<std::string> encoding = stt_encoding::PCM_S16LE;
+        std::optional<int> sample_rate;
+
+        // body
+        std::optional<std::string> model;
     };
 }
 

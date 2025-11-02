@@ -7,8 +7,11 @@
     "boost-system",
     "boost-thread", 
     "boost-beast",
-    "openssl",
     "spdlog",
-    "nlohmann-json"
+    "nlohmann-json",
+    {
+      "name": "openssl",
+      "features": ["tools"]
+    }
   ]
 }

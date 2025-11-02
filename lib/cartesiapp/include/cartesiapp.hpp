@@ -5,19 +5,12 @@
 #include <memory>
 #include <future>
 
+#include "cartesiapp_export.hpp"
+
 #include "cartesiapp_request.hpp"
 #include "cartesiapp_response.hpp"
 
 namespace cartesiapp {
-    /**
-     * Constants used across the Cartesia Library
-     */
-    namespace constants {
-        constexpr const char* API_URL = "api.cartesi.io";
-        constexpr const char* USER_AGENT = "CartesiaCPP/0.1.0";
-        constexpr const char* API_KEY_HEADER = "X-API-KEY";
-        constexpr const char* CARTESIA_VERSION_HEADER = "Cartesia-Version";
-    }
 
     // Forward declaration of implementation class
     class CartesiaClientImpl;
@@ -25,17 +18,35 @@ namespace cartesiapp {
     /**
      * Main class for interacting with the Cartesia API
      */
-    class Cartesia {
+    class CARTESIAPP_EXPORT Cartesia {
         public:
-        Cartesia(const std::string& apiKey);
+        Cartesia(const std::string& apiKey, const std::string& apiVersion = request::api_versions::LATEST);
         ~Cartesia();
 
         /**
-         * @brief Retrieves API information asynchronously.
+         * @brief Retrieves API information.
          */
-        std::future<response::ApiInfo> getApiInfo() const;
+        response::ApiInfo getApiInfo() const;
 
-        void ttsBytes(request::TTSBytesRequest& request);
+        /**
+         * @brief Retrieves a list of available voices.
+         * @param request The VoiceListRequest containing query parameters.
+         * @return A VoiceListPage containing the list of voices.
+         */
+        response::VoiceListPage getVoiceList(request::VoiceListRequest& request) const;
+
+
+        /**
+         * @brief Retrieves information about a specific voice by its ID.
+         * @param voiceId The ID of the voice to retrieve.
+         * @return A Voice object containing the voice information.
+         */
+        response::Voice getVoice(const std::string& voiceId) const;
+
+        /**
+         * @brief Performs a Text-to-Speech byte synthesis request.
+         */
+        std::string ttsBytes(request::TTSBytesRequest& request) const;
 
         private:
         std::unique_ptr<CartesiaClientImpl> _clientImpl;
