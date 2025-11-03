@@ -72,3 +72,13 @@ void cartesiapp::Cartesia::unregisterListener()
 {
     _listener.reset();
 }
+
+void cartesiapp::Cartesia::requestTTS(const request::TTSGenerationRequest& request) const
+{
+    
+}
+
+void cartesiapp::Cartesia::cancelTTSContext(const request::TTSCancelContextRequest& request) const
+{
+
+}

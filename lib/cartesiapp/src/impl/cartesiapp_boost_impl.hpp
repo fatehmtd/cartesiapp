@@ -4,18 +4,27 @@
 #include "cartesiapp.hpp"
 
 #include <string>
+#include <sstream>
+#include <iostream>
+#include <fstream>
+#include <chrono>
+#include <thread>
+
+#include <nlohmann/json.hpp>
+#include <spdlog/spdlog.h>
+
+// boost
 #include <boost/beast/core.hpp>
 #include <boost/beast/http.hpp>
 #include <boost/beast/version.hpp>
 #include <boost/asio/connect.hpp>
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/asio/ssl.hpp>
-#include <sstream>
-#include <spdlog/spdlog.h>
-#include <iostream>
-#include <fstream>
-#include <nlohmann/json.hpp>
-#include <chrono>
+#include <boost/beast/websocket.hpp>
+#include <boost/beast/websocket/ssl.hpp>
+#include <boost/asio/ssl/stream.hpp>
+#include <boost/asio/ssl/context.hpp>
+#include <boost/asio/ssl/host_name_verification.hpp>
 
 // for convenience
 namespace beast = boost::beast;
@@ -24,14 +33,29 @@ namespace net = boost::asio;
 namespace ssl = net::ssl;
 using tcp = net::ip::tcp;
 
+using Websocket = boost::beast::websocket::stream<ssl::stream<tcp::socket>>;
+
 namespace cartesiapp {
+    /**
+     * @brief Implementation class for Cartesia API client using Boost.Beast
+     */
     class CartesiaClientImpl {
         public:
         CartesiaClientImpl(const std::string& apiKey, const std::string& apiVersion, bool verifyCertificates) :
             _apiKey(apiKey),
             _apiVersion(apiVersion),
             _resolver(_ioContext),
+            _sslContext(ssl::context::tls_client),
+            _websocket(_ioContext, _sslContext),
             _verifyCertificates(verifyCertificates) {
+
+            try {
+                bool c = connectWebsocket(verifyCertificates);
+                spdlog::debug(">>>>>>>>>>>> Websocket connected: {}", c);
+            }
+            catch (const std::exception& ex) {
+                spdlog::error(">>>>>>>>>>>>>> Error connecting websocket: {}", ex.what());
+            }
         }
 
         ~CartesiaClientImpl() {
@@ -44,6 +68,10 @@ namespace cartesiapp {
 
         std::string getApiVersion() const {
             return _apiVersion;
+        }
+
+        bool isWebsocketConnected() const {
+            return _websocket.is_open();
         }
 
         response::ApiInfo getApiInfo() const {
@@ -332,19 +360,19 @@ namespace cartesiapp {
 
         private:
         ssl::stream<beast::tcp_stream> createSSLStream(bool verifyCertificates) const {
-            ssl::context sslContext(ssl::context::tls_client);
+            //ssl::context _sslContext(ssl::context::tls_client);
 
             beast::error_code ec;
             // Add SSL verification and options
-            sslContext.set_default_verify_paths(ec);
+            _sslContext.set_default_verify_paths(ec);
 
             if (ec) {
                 spdlog::error("Error setting default verify paths: {}", ec.message());
                 throw beast::system_error{ ec };
             }
 
-            sslContext.set_verify_mode(ssl::verify_peer);
-            sslContext.set_verify_callback([verifyCertificates](bool preverified, ssl::verify_context& ctx) {
+            _sslContext.set_verify_mode(ssl::verify_peer);
+            _sslContext.set_verify_callback([verifyCertificates](bool preverified, ssl::verify_context& ctx) {
                 // Log certificate info for debugging
                 X509_STORE_CTX* store_ctx = ctx.native_handle();
                 X509* cert = X509_STORE_CTX_get_current_cert(store_ctx);
@@ -364,7 +392,7 @@ namespace cartesiapp {
 
             auto const results = _resolver.resolve(cartesiapp::request::constants::HOST, "443");
 
-            ssl::stream<beast::tcp_stream> sslStream(_ioContext, sslContext);
+            ssl::stream<beast::tcp_stream> sslStream(_ioContext, _sslContext);
 
             // Set SNI hostname
             if (!SSL_set_tlsext_host_name(sslStream.native_handle(), cartesiapp::request::constants::HOST)) {
@@ -378,12 +406,56 @@ namespace cartesiapp {
             return std::move(sslStream);
         }
 
+        bool connectWebsocket(bool verifyCertificates)
+        {
+            try
+            {
+                auto const results = _resolver.resolve(cartesiapp::request::constants::HOST, "443");
+                net::connect(_websocket.next_layer().lowest_layer(), results.begin(), results.end());
+                spdlog::info("Performing SSL handshake...");                
+                _websocket.next_layer().set_verify_callback([verifyCertificates](bool preverified, ssl::verify_context& ctx) {
+                    return true;
+                    // Log certificate info for debugging
+                    X509_STORE_CTX* store_ctx = ctx.native_handle();
+                    X509* cert = X509_STORE_CTX_get_current_cert(store_ctx);
+                    if (cert) {
+                        char subject_name[256];
+                        X509_NAME_oneline(X509_get_subject_name(cert), subject_name, 256);
+                        spdlog::debug("Certificate subject: {}", subject_name);
+                    }
+
+                    if (!preverified) {
+                        int error = X509_STORE_CTX_get_error(store_ctx);
+                        spdlog::error("Certificate verification failed: {}, verification {}", X509_verify_cert_error_string(error), verifyCertificates ? "enabled" : "disabled");
+                        return !verifyCertificates; // Reject invalid certificates if verification is enabled
+                    }
+                    return true;
+                    });
+                _websocket.next_layer().set_verify_mode(ssl::verify_none);
+                _websocket.next_layer().handshake(ssl::stream_base::handshake_type::client);
+                _websocket.handshake(cartesiapp::request::constants::HOST, cartesiapp::request::constants::ENDPOINT_TTS_WEBSOCKET);
+                spdlog::info("WebSocket connected successfully!");
+            }
+            catch (std::exception& e)
+            {
+                spdlog::error("Error occurred: {}", e.what());
+                return false;
+            }
+            return true;
+        }
+
         private:
         std::string _apiKey;
         std::string _apiVersion;
+        bool _verifyCertificates;
+
+        std::thread _workerThread;
+
+        // Boost.Asio components, mutable to allow modification in const methods that are exposed to users
+        mutable ssl::context _sslContext;
         mutable net::io_context _ioContext;
         mutable tcp::resolver _resolver;
-        bool _verifyCertificates;
+        mutable Websocket _websocket;
     };
 }
 
