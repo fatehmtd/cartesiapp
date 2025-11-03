@@ -46,6 +46,9 @@ namespace cartesiapp::response {
         static VoiceListPage fromJson(const std::string& jsonStr);
     };
 
+    /**
+     * @brief Namespace for Speech-to-Text related responses
+     */
     namespace stt {
         /**
          * Struct to hold STT batch response information
@@ -74,6 +77,9 @@ namespace cartesiapp::response {
         };
     }
 
+    /**
+     * @brief Namespace for Text-to-Speech related responses
+     */
     namespace tts {
 
         /**
@@ -114,6 +120,67 @@ namespace cartesiapp::response {
             std::optional<std::string> context_id;
 
             static DoneResponse fromJson(const std::string& jsonStr);
+        };
+
+        /**
+         * Struct to hold word timestamps response information
+         */
+        struct CARTESIAPP_EXPORT WordTimestampsResponse {
+            std::string type;
+            bool done;
+            int status_code;
+            std::optional<std::string> context_id;
+
+            /**
+             * Struct to hold word-level timing information
+             */
+            struct WordTimestamps {
+                std::vector<std::string> words;
+                std::vector<double> start;
+                std::vector<double> end;
+
+                static WordTimestamps fromJson(const std::string& jsonStr);
+            };
+            std::vector<WordTimestamps> word_timestamps;
+
+            static WordTimestampsResponse fromJson(const std::string& jsonStr);
+        };
+
+        /**
+         * Struct to hold phoneme timestamps response information
+         */
+        struct CARTESIAPP_EXPORT PhonemeTimestampsResponse {
+            std::string type;
+            bool done;
+            int status_code;
+            std::optional<std::string> context_id;
+
+            /**
+             * Struct to hold phoneme-level timing information
+             */
+            struct PhonemeTimestamps {
+                std::vector<std::string> phonemes;
+                std::vector<double> start;
+                std::vector<double> end;
+
+                static PhonemeTimestamps fromJson(const std::string& jsonStr);
+            };
+            PhonemeTimestamps phoneme_timestamps;
+
+            static PhonemeTimestampsResponse fromJson(const std::string& jsonStr);
+        };        
+
+        /**
+         * Struct to hold error response information
+         */
+        struct CARTESIAPP_EXPORT ErrorResponse {
+            std::string type;
+            bool done;
+            std::string error;
+            int status_code;
+            std::optional<std::string> context_id;
+
+            static ErrorResponse fromJson(const std::string& jsonStr);
         };
     }
 }

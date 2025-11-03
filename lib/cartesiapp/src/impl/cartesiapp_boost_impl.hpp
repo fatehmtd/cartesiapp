@@ -38,6 +38,14 @@ namespace cartesiapp {
 
         }
 
+        void overrideApiVersion(const std::string& apiVersion) {
+            _apiVersion = apiVersion;
+        }
+
+        std::string getApiVersion() const {
+            return _apiVersion;
+        }
+
         response::ApiInfo getApiInfo() const {
             spdlog::debug("Getting API info...");
 

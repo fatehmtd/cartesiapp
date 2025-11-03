@@ -16,6 +16,16 @@ cartesiapp::Cartesia::~Cartesia()
 
 }
 
+void cartesiapp::Cartesia::overrideApiVersion(const std::string& apiVersion)
+{
+    _clientImpl->overrideApiVersion(apiVersion);
+}
+
+std::string cartesiapp::Cartesia::getApiVersion() const
+{
+    return _clientImpl->getApiVersion();
+}
+
 response::ApiInfo cartesiapp::Cartesia::getApiInfo() const
 {
     return  _clientImpl->getApiInfo();
@@ -51,4 +61,14 @@ response::stt::BatchResponse cartesiapp::Cartesia::sttWithBytes(const std::vecto
     const request::STTBatchRequest& request) const
 {
     return _clientImpl->sttWithBytes(audioBytes, request);
+}
+
+void cartesiapp::Cartesia::registerListener(std::weak_ptr<TTSResponseListener> listener)
+{
+    _listener = listener;
+}
+
+void cartesiapp::Cartesia::unregisterListener()
+{
+    _listener.reset();
 }
