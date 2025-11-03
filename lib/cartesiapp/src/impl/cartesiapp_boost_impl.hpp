@@ -212,7 +212,7 @@ namespace cartesiapp {
             return response;
         }
 
-        response::SttBatchResponse sttWithBytes(const std::vector<char>& audioBytes,
+        response::stt::BatchResponse sttWithBytes(const std::vector<char>& audioBytes,
             const request::STTBatchRequest& request,
             const std::string& mime = "application/octet-stream") const {
             spdlog::debug("Performing STT Batch request...");
@@ -319,7 +319,7 @@ namespace cartesiapp {
 
             spdlog::debug("STT Batch response: {}", response);
 
-            return response::SttBatchResponse::fromJson(response);
+            return response::stt::BatchResponse::fromJson(response);
         }
 
         private:

@@ -36,7 +36,7 @@ std::string cartesiapp::Cartesia::ttsBytes(const request::TTSBytesRequest& reque
     return _clientImpl->ttsBytes(request);
 }
 
-response::SttBatchResponse cartesiapp::Cartesia::sttWithFile(const std::string& filePath,
+response::stt::BatchResponse cartesiapp::Cartesia::sttWithFile(const std::string& filePath,
     const request::STTBatchRequest& request) const
 {
     std::ifstream fileStream(filePath, std::ios::binary);
@@ -47,7 +47,7 @@ response::SttBatchResponse cartesiapp::Cartesia::sttWithFile(const std::string& 
     return sttWithBytes(std::move(audioBytes), request);
 }
 
-response::SttBatchResponse cartesiapp::Cartesia::sttWithBytes(const std::vector<char>& audioBytes,
+response::stt::BatchResponse cartesiapp::Cartesia::sttWithBytes(const std::vector<char>& audioBytes,
     const request::STTBatchRequest& request) const
 {
     return _clientImpl->sttWithBytes(audioBytes, request);

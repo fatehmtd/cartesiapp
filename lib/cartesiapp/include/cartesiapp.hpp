@@ -51,17 +51,17 @@ namespace cartesiapp {
          * @brief Performs a Speech-to-Text batch transcription using an audio file.
          * @param filePath The path to the audio file to transcribe.
          * @param request The STTBatchRequest containing transcription parameters.
-         * @return A SttBatchResponse containing the transcription result.
+         * @return A BatchResponse containing the transcription result.
          */
-        response::SttBatchResponse sttWithFile(const std::string& filePath, const request::STTBatchRequest& request) const;
+        response::stt::BatchResponse sttWithFile(const std::string& filePath, const request::STTBatchRequest& request) const;
 
         /**
          * @brief Performs a Speech-to-Text batch transcription using raw audio bytes.
          * @param audioBytes The raw audio bytes to transcribe.
          * @param request The STTBatchRequest containing transcription parameters.
-         * @return A SttBatchResponse containing the transcription result.
+         * @return A BatchResponse containing the transcription result.
          */
-        response::SttBatchResponse sttWithBytes(const std::vector<char>& audioBytes, const request::STTBatchRequest& request) const;
+        response::stt::BatchResponse sttWithBytes(const std::vector<char>& audioBytes, const request::STTBatchRequest& request) const;
 
         private:
         std::unique_ptr<CartesiaClientImpl> _clientImpl;

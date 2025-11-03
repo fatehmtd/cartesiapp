@@ -15,7 +15,7 @@ bool testSttWithFile(cartesiapp::Cartesia& client) {
     //sttRequest.sample_rate = 16000;
     //sttRequest.encoding = cartesiapp::request::stt_encoding::PCM_S16LE;
 
-    cartesiapp::response::SttBatchResponse response = client.sttWithFile(
+    cartesiapp::response::stt::BatchResponse response = client.sttWithFile(
         "../data/tts_output.mp3",
          sttRequest
     );

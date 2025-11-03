@@ -180,7 +180,7 @@ namespace cartesiapp::request {
         std::string container = container::RAW;
         std::string encoding = tts_encoding::PCM_S16LE;
         int sample_rate = sample_rate::SR_24000;
-        
+
         // used for mp3 container
         std::optional<int> bit_rate;
 
@@ -282,6 +282,48 @@ namespace cartesiapp::request {
 
         // creates query parameters string
         std::string toQueryParams() const;
+    };
+
+    /**
+     * @brief Request structure for Text-to-Speech generation via streaming
+     */
+    struct CARTESIAPP_EXPORT TTSGenerationRequest {
+        std::string model_id = tts_model::SONIC_3;
+        std::string transcript;
+        Voice voice;
+        GenerationConfig generation_config;
+        OutputFormat output_format;
+
+        std::optional<std::string> language;
+        /**
+         * @brief An optional context ID to continue a previous TTS session. If provided, the generation will continue from the last state associated with this context ID.
+         */
+        std::optional<std::string> context_id;
+
+        /**
+         * @brief A flag indicating whether to continue the TTS generation from the previous context. If true, the generation will pick up from where it left off in the previous session. Defaults to false.
+         */
+        std::optional<bool> continue_;
+        /**
+         * @brief The maximum time in milliseconds to buffer text before starting generation. Values between [0, 5000]ms are supported. Defaults to 3000ms.
+         */
+        std::optional<int> max_buffer_delay_ms = 3000;
+        std::optional<bool> flush;
+        std::optional<bool> add_timestamps;
+        std::optional<bool> add_phoneme_timestamps;
+        std::optional<bool> use_normalized_timestamps;
+        std::optional<std::string> pronunciation_dict_id;
+
+        std::string toJson() const;
+    };
+
+    /**
+     * @brief Request structure to cancel an ongoing TTS context/session
+     */
+    struct CARTESIAPP_EXPORT TTSCancelContextRequest {
+        std::string context_id;
+        bool cancel;
+        std::string toJson() const;
     };
 }
 

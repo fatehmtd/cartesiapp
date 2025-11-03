@@ -46,31 +46,76 @@ namespace cartesiapp::response {
         static VoiceListPage fromJson(const std::string& jsonStr);
     };
 
-    /**
-     * Struct to hold STT batch response information
-     */
-    struct CARTESIAPP_EXPORT SttBatchResponse {
-        std::string type;
-        std::string text;
-        std::string language;
-        float duration;
-        std::string request_id;
-        bool is_final;
+    namespace stt {
+        /**
+         * Struct to hold STT batch response information
+         */
+        struct CARTESIAPP_EXPORT BatchResponse {
+            std::string type;
+            std::string text;
+            std::string language;
+            float duration;
+            std::string request_id;
+            bool is_final;
+
+            /**
+             * Struct to hold word timing information for STT
+             */
+            struct WordTiming {
+                std::string word;
+                float start;
+                float end;
+
+                static WordTiming fromJson(const std::string& jsonStr);
+            };
+            std::vector<WordTiming> words;
+
+            static BatchResponse fromJson(const std::string& jsonStr);
+        };
+    }
+
+    namespace tts {
 
         /**
-         * Struct to hold word timing information for STT
+         * Struct to hold TTS audio chunk response information
          */
-        struct WordTiming {
-            std::string word;
-            float start;
-            float end;
+        struct CARTESIAPP_EXPORT AudioChunkResponse {
+            std::string type;
+            std::string data;
+            bool done;
+            int status_code;
+            double step_time;
+            std::optional<std::string> context_id;
 
-            static WordTiming fromJson(const std::string& jsonStr);
+            static AudioChunkResponse fromJson(const std::string& jsonStr);
         };
-        std::vector<WordTiming> words;
 
-        static SttBatchResponse fromJson(const std::string& jsonStr);
-    };
+        /**
+         * Struct to hold flush done response information
+         */
+        struct CARTESIAPP_EXPORT FlushDoneResponse {
+            std::string type;
+            bool done;
+            bool flush_done;
+            int flush_id;
+            int status_code;
+            std::optional<std::string> context_id;
+
+            static FlushDoneResponse fromJson(const std::string& jsonStr);
+        };
+
+        /**
+         * Struct to hold done response information
+         */
+        struct CARTESIAPP_EXPORT DoneResponse {
+            std::string type;
+            bool done;
+            int status_code;
+            std::optional<std::string> context_id;
+
+            static DoneResponse fromJson(const std::string& jsonStr);
+        };
+    }
 }
 
 #endif // CARTESIAPP_RESPONSE_HPP
