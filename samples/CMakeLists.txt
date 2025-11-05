@@ -40,5 +40,17 @@ target_link_libraries(CartesiaPP_Sample_STT_File
     spdlog::spdlog
 )
 
+# Text to Speech with streaming sample
+add_executable(CartesiaPP_Sample_TTS_Streaming
+    sample-tts-streaming.cpp
+)
+
+target_link_libraries(CartesiaPP_Sample_TTS_Streaming
+    PRIVATE
+    cartesiapp
+    spdlog::spdlog
+)
+
+
 # Make executable depend on data being copied
 add_dependencies(CartesiaPP_Sample_STT_File copy_data_folder)

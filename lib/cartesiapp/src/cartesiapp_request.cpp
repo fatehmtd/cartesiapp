@@ -114,3 +114,49 @@ std::string cartesiapp::request::STTBatchRequest::toQueryParams() const
     }
     return queryParams.str();
 }
+
+std::string cartesiapp::request::TTSGenerationRequest::toJson() const
+{
+    nlohmann::json jsonObj;
+    jsonObj["model_id"] = model_id;
+    jsonObj["transcript"] = transcript;
+    jsonObj["voice"] = nlohmann::json::parse(voice.toJson());
+    jsonObj["generation_config"] = nlohmann::json::parse(generation_config.toJson());
+    jsonObj["output_format"] = nlohmann::json::parse(output_format.toJson());
+    if (language) {
+        jsonObj["language"] = language.value();
+    }
+    if (context_id) {
+        jsonObj["context_id"] = context_id.value();
+    }
+    if (continue_) {
+        jsonObj["continue"] = continue_.value();
+    }
+    if (max_buffer_delay_ms) {
+        jsonObj["max_buffer_delay_ms"] = max_buffer_delay_ms.value();
+    }
+    if (flush) {
+        jsonObj["flush"] = flush.value();
+    }
+    if (add_timestamps) {
+        jsonObj["add_timestamps"] = add_timestamps.value();
+    }
+    if (add_phoneme_timestamps) {
+        jsonObj["add_phoneme_timestamps"] = add_phoneme_timestamps.value();
+    }
+    if (use_normalized_timestamps) {
+        jsonObj["use_normalized_timestamps"] = use_normalized_timestamps.value();
+    }
+    if (pronunciation_dict_id) {
+        jsonObj["pronunciation_dict_id"] = pronunciation_dict_id.value();
+    }    
+    return jsonObj.dump();
+}
+
+std::string cartesiapp::request::TTSCancelContextRequest::toJson() const
+{
+    nlohmann::json jsonObj;
+    jsonObj["context_id"] = context_id;
+    jsonObj["cancel"] = cancel;
+    return jsonObj.dump();
+}
