@@ -14,11 +14,14 @@ std::string generateSimpleID() {
 
 class TTSResponseListener : public cartesiapp::TTSResponseListener {
     private:
-    std::atomic_bool& _stopFlag;
+    std::atomic_bool _stopFlag;
     std::fstream _audioOutputFile;
+    bool _firstByteReceived = false;
+    std::chrono::high_resolution_clock::time_point _firstByteTimestamp;
 
     public:
-    TTSResponseListener(std::atomic_bool& stopFlag) : _stopFlag(stopFlag) {
+    TTSResponseListener() {
+        _stopFlag.store(false);
         _audioOutputFile.open("tts_output.raw", std::ios::out | std::ios::binary);
         if (!_audioOutputFile.is_open()) {
             spdlog::error("Failed to open output audio file.");
@@ -38,11 +41,16 @@ class TTSResponseListener : public cartesiapp::TTSResponseListener {
     }
 
     void onAudioChunkReceived(const cartesiapp::response::tts::AudioChunkResponse& response) override {
-        spdlog::info("Listener: Received audio chunk of size: {}, Context ID: {}, Step Time: {}, Done: {}",
+        if(!_firstByteReceived) {
+            _firstByteReceived = true;
+            _firstByteTimestamp = std::chrono::high_resolution_clock::now();
+        }
+        // uncomment to log each audio chunk received
+        /*spdlog::info("Listener: Received audio chunk of size: {}, Context ID: {}, Step Time: {}, Done: {}",
             response.data.size(),
             response.context_id.has_value() ? *response.context_id : "N/A",
             response.step_time,
-            response.done);
+            response.done);*/
         if (_audioOutputFile.is_open()) {
             _audioOutputFile.write(response.data.data(), response.data.size());
         }
@@ -50,6 +58,10 @@ class TTSResponseListener : public cartesiapp::TTSResponseListener {
 
     void onDoneReceived(const cartesiapp::response::tts::DoneResponse& response) override {
         spdlog::info("Listener: TTS done. Context ID: {}", response.context_id.has_value() ? *response.context_id : "N/A");
+
+        auto durationToFirstByte = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - firstByteTimestamp()).count();
+        spdlog::info("total audio duration: {} ms", durationToFirstByte);
+
         _stopFlag.store(true);
         _audioOutputFile.close();
     }
@@ -70,6 +82,14 @@ class TTSResponseListener : public cartesiapp::TTSResponseListener {
         spdlog::error("Listener: TTS error: {} - {}", response.status_code, response.error);
         _stopFlag.store(true);
     }
+
+    bool stopRequested() const {
+        return _stopFlag.load();
+    }
+
+    std::chrono::high_resolution_clock::time_point firstByteTimestamp() const {
+        return _firstByteTimestamp;
+    }
 };
 
 /**
@@ -77,8 +97,7 @@ class TTSResponseListener : public cartesiapp::TTSResponseListener {
  */
 bool testTTSWithStreaming(cartesiapp::Cartesia& client) {
 
-    std::atomic_bool stopFlag = false;
-    std::shared_ptr<TTSResponseListener> listener = std::make_shared<TTSResponseListener>(stopFlag);
+    std::shared_ptr<TTSResponseListener> listener = std::make_shared<TTSResponseListener>();
     client.registerListener(listener);
 
     if (!client.startTTSWebsocketConnection()) {
@@ -94,24 +113,29 @@ bool testTTSWithStreaming(cartesiapp::Cartesia& client) {
     // uuid for context ID can be generated as needed
     ttsRequest.context_id = generateSimpleID();
     ttsRequest.transcript = "Hello, this is a test of the Cartesia Text to Speech streaming API.";
-    ttsRequest.voice.id = voices.voices[0].id;
+    ttsRequest.voice.id = voices.voices[1].id;
     ttsRequest.output_format.container = cartesiapp::request::container::RAW;
-    ttsRequest.output_format.encoding = cartesiapp::request::tts_encoding::PCM_F32LE;
-    ttsRequest.output_format.sample_rate = cartesiapp::request::sample_rate::SR_44100;
+    ttsRequest.output_format.encoding = cartesiapp::request::tts_encoding::PCM_S16LE;
+    ttsRequest.output_format.sample_rate = cartesiapp::request::sample_rate::SR_48000;
     ttsRequest.generation_config.volume = 1.0f;
     ttsRequest.model_id = cartesiapp::request::tts_model::SONIC_3;
     ttsRequest.continue_ = false;
 
+    std::chrono::high_resolution_clock::time_point startTime = std::chrono::high_resolution_clock::now();
     if (!client.requestTTS(ttsRequest)) {
         spdlog::error("Failed to send TTS request.");
         return false;
     }
 
-    while (!stopFlag.load()) {
+    while (!listener->stopRequested()) {
         std::this_thread::sleep_for(std::chrono::seconds(1));
     }
 
-    client.stopTTSWebsocketConnection();
+    // compute duration from start to first byte received
+    auto firstByteTime = listener->firstByteTimestamp();
+    auto durationToFirstByte = std::chrono::duration_cast<std::chrono::milliseconds>(firstByteTime - startTime).count();
+    spdlog::info("Time from request start to first audio byte received: {} ms", durationToFirstByte);
+
     client.unregisterListener();
 
     return true;

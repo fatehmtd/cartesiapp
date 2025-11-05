@@ -75,6 +75,7 @@ namespace cartesiapp {
             const std::function<void()>& onConnectedCallback,
             const std::function<void(const std::string& message)>& onDisconnectedCallback,
             const std::function<void(const std::string& errorMessage)>& onErrorCallback) {
+
             if (!connectWebsocket(_verifyCertificates)) {
                 return false;
             }
@@ -84,8 +85,6 @@ namespace cartesiapp {
                 }
             }
 
-            _shouldStop.store(false);
-
             _workerThread = std::thread([this,
                 dataReadCallback,
                 onDisconnectedCallback,
@@ -93,38 +92,47 @@ namespace cartesiapp {
                 {
                     beast::flat_buffer buffer;
                     beast::error_code ec;
+                    _shouldStop.store(false);
                     try {
                         while (!_shouldStop.load())
                         {
+                            size_t bytesRead = 0;
+                            // check if websocket is still open and we should continue
                             {
                                 std::scoped_lock lock(_websocketMutex);
                                 if (!_websocket.is_open() || _shouldStop.load()) {
-                                    spdlog::warn("WebSocket is no longer open, stopping data reception thread.");
+                                    spdlog::warn("WebSocket is no longer open or stop requested, stopping data reception thread.");
                                     break;
                                 }
                             }
-
-                            size_t bytesRead = 0;
-                            {
-                                std::scoped_lock lock(_websocketMutex);
+                            
+                            // read data from websocket                    
+                            try {
                                 bytesRead = _websocket.read(buffer, ec);
+                            }
+                            catch (const std::exception& read_ex) {
+                                spdlog::warn("Exception during WebSocket read: {}", read_ex.what());
+                                ec = beast::error_code(net::error::operation_aborted, net::error::get_system_category());
                             }
 
                             if (ec || _shouldStop.load())
                             {
-                                switch (ec.value())
+                                // Check for expected disconnection scenarios
+                                if (ec == beast::websocket::error::closed || 
+                                    ec == net::error::eof ||
+                                    ec == net::error::operation_aborted ||
+                                    ec == net::error::connection_aborted ||
+                                    ec == net::error::connection_reset)
                                 {
-                                case beast::websocket::error::closed:
-                                case net::error::eof:
-                                {
-                                    spdlog::warn("WebSocket closed by server: {}", ec.message());
-                                    if (onDisconnectedCallback)
-                                    {
-                                        onDisconnectedCallback(ec.message());
+                                    if (!_shouldStop.load()) {
+                                        spdlog::warn("WebSocket closed by server or network error: {}", ec.message());
+                                        if (onDisconnectedCallback)
+                                        {
+                                            onDisconnectedCallback(ec.message());
+                                        }
                                     }
                                 }
-                                break;
-                                default:
+                                else if (!_shouldStop.load()) 
                                 {
                                     spdlog::error("Error reading from WebSocket: {}, {}, {}", ec.message(), ec.value(), ec.category().name());
                                     if (onErrorCallback)
@@ -137,17 +145,19 @@ namespace cartesiapp {
                                     }
                                 }
                                 break;
-                                }
-                                break;
                             }
-                            std::string data(beast::buffers_to_string(buffer.data()));
-                            buffer.consume(bytesRead);
-                            dataReadCallback(data);
+                            
+                            // Only process data if we successfully read and haven't been asked to stop
+                            if (!ec && !_shouldStop.load() && bytesRead > 0) {
+                                std::string data(beast::buffers_to_string(buffer.data()));
+                                buffer.consume(bytesRead);
+                                dataReadCallback(data);
+                            }
                         }
                     }
                     catch (std::exception& e)
                     {
-                        if (!_shouldStop) {
+                        if (!_shouldStop.load()) {
                             spdlog::error("Error in data reception thread: {}", e.what());
                             if (onErrorCallback) {
                                 onErrorCallback(e.what());
@@ -155,6 +165,8 @@ namespace cartesiapp {
                             if (onDisconnectedCallback) {
                                 onDisconnectedCallback(e.what());
                             }
+                        } else {
+                            spdlog::info("Exception during shutdown (expected): {}", e.what());
                         }
                     }
                 });
@@ -162,28 +174,36 @@ namespace cartesiapp {
         }
 
         bool disconnectWebsocket() {
-            if (!_websocket.is_open() || _shouldStop.load()) {
-                spdlog::warn("disconnectWebsocket: WebSocket is already disconnected.");
-                return false;
-            }
-
-            _shouldStop.store(true);
+            // check if websocket is already disconnected
             {
                 std::scoped_lock lock(_websocketMutex);
+                if (!_websocket.is_open() || _shouldStop.load()) {
+                    spdlog::warn("disconnectWebsocket: WebSocket is already disconnected.");
+                    return false;
+                }
+            }
+
+            // mark to stop the worker thread
+            _shouldStop.store(true);
+
+            // First, forcefully shutdown the underlying TCP socket to unblock any pending reads
+            {
                 try {
                     beast::error_code ec;
-                    _websocket.close(beast::websocket::close_code::normal, ec);
+                    std::scoped_lock lock(_websocketMutex);
+                    // Shutdown the underlying TCP socket to interrupt any blocking read operations
+                    beast::get_lowest_layer(_websocket).close(ec);
                     if (ec) {
-                        spdlog::error("disconnectWebsocket: Error closing WebSocket: {}, {}, {}", ec.message(), ec.value(), ec.category().name());
+                        spdlog::warn("disconnectWebsocket: Error closing underlying socket: {}", ec.message());
                     }
                 }
                 catch (const std::exception& ex) {
-                    spdlog::error("disconnectWebsocket: Exception while closing WebSocket: {}", ex.what());
+                    spdlog::error("disconnectWebsocket: Exception while closing underlying socket: {}", ex.what());
                 }
             }
 
+            // join the worker thread first (it should exit quickly now that socket is closed)
             {
-                std::scoped_lock lock(_websocketMutex);
                 try {
                     if (_workerThread.joinable()) {
                         _workerThread.join();
@@ -193,6 +213,24 @@ namespace cartesiapp {
                     spdlog::error("disconnectWebsocket: Error joining worker thread: {}", ex.what());
                 }
             }
+
+            // Now attempt graceful WebSocket close (though connection may already be broken)
+            {
+                try {
+                    beast::error_code ec;
+                    std::scoped_lock lock(_websocketMutex);
+                    if (_websocket.is_open()) {
+                        _websocket.close(beast::websocket::close_code::normal, ec);
+                        if (ec && ec != beast::websocket::error::closed && ec != net::error::eof) {
+                            spdlog::warn("disconnectWebsocket: Error closing WebSocket gracefully: {}", ec.message());
+                        }
+                    }
+                }
+                catch (const std::exception& ex) {
+                    spdlog::error("disconnectWebsocket: Exception while closing WebSocket: {}", ex.what());
+                }
+            }
+
             return true;
         }
 
