@@ -8,7 +8,7 @@
 /**
  * @brief Test Speech-to-Text functionality with a local audio file.
  */
-bool testSttWithFile(cartesiapp::Cartesia& client) {
+bool testTTSWithStreaming(cartesiapp::Cartesia& client) {
     cartesiapp::request::STTBatchRequest sttRequest;
     // you can omit optional parameters to use defaults from the actual file's header
     //sttRequest.language = "en";
@@ -54,7 +54,7 @@ int main(int ac, char** av) {
     spdlog::info("API Version: {}, Status OK: {}", apiInfo.version, apiInfo.ok);
 
     // uncomment to test STT with file
-    if (!testSttWithFile(client)) {
+    if (!testTTSWithStreaming(client)) {
         return -1;
     }
 

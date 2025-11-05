@@ -3,6 +3,7 @@
 #include <spdlog/spdlog.h>
 #include <iostream>
 #include <fstream>
+#include <nlohmann/json.hpp>
 
 using namespace cartesiapp;
 
@@ -73,12 +74,72 @@ void cartesiapp::Cartesia::unregisterListener()
     _listener.reset();
 }
 
-void cartesiapp::Cartesia::requestTTS(const request::TTSGenerationRequest& request) const
+bool cartesiapp::Cartesia::startTTSWebsocketConnection() const
 {
-    
+    return _clientImpl->connectWebsocketAndStartThread(
+        [this](const std::string& data) {
+            auto listener = _listener.lock();
+            if (listener) {
+                nlohmann::json jsonData = nlohmann::json::parse(data);
+                std::string responseType = jsonData.value("type", "");
+                if (responseType == "chunk") {
+                    cartesiapp::response::tts::AudioChunkResponse audioChunkResponse = std::move(cartesiapp::response::tts::AudioChunkResponse::fromJson(data));
+                    listener->onAudioChunkReceived(std::move(audioChunkResponse));
+                }
+                else if (responseType == "timestamps") {
+                    cartesiapp::response::tts::WordTimestampsResponse wordTimestampsResponse = std::move(cartesiapp::response::tts::WordTimestampsResponse::fromJson(data));
+                    listener->onWordTimestampsReceived(std::move(wordTimestampsResponse));
+                }
+                else if (responseType == "phoneme_timestamps") {
+                    cartesiapp::response::tts::PhonemeTimestampsResponse phonemeTimestampsResponse = cartesiapp::response::tts::PhonemeTimestampsResponse::fromJson(data);
+                    listener->onPhonemeTimestampsReceived(std::move(phonemeTimestampsResponse));
+                }
+                else if (responseType == "flush_done") {
+                    cartesiapp::response::tts::FlushDoneResponse flushDoneResponse = cartesiapp::response::tts::FlushDoneResponse::fromJson(data);
+                    listener->onFlushDoneReceived(std::move(flushDoneResponse));
+                }
+                else if (responseType == "done") {
+                    cartesiapp::response::tts::DoneResponse doneResponse = cartesiapp::response::tts::DoneResponse::fromJson(data);
+                    listener->onDoneReceived(std::move(doneResponse));
+                }
+                else if (responseType == "error") {
+                    cartesiapp::response::tts::ErrorResponse errorResponse = cartesiapp::response::tts::ErrorResponse::fromJson(data);
+                    listener->onError(std::move(errorResponse));
+                }
+            }
+        },
+        [this]() {
+            auto listener = _listener.lock();
+            if (listener) {
+                listener->onConnected();
+            }
+        },
+        [this](const std::string& message) {
+            auto listener = _listener.lock();
+            if (listener) {
+                listener->onDisconnected(message);
+            }
+        },
+        [this](const std::string& errorMessage) {
+            auto listener = _listener.lock();
+            if (listener) {
+                listener->onNetworkError(errorMessage);
+            }
+        });
 }
 
-void cartesiapp::Cartesia::cancelTTSContext(const request::TTSCancelContextRequest& request) const
+bool cartesiapp::Cartesia::stopTTSWebsocketConnection() const
 {
-
+    return _clientImpl->disconnectWebsocket();
 }
+
+bool cartesiapp::Cartesia::requestTTS(const request::TTSGenerationRequest& request) const
+{
+    return _clientImpl->sendWebsocketData(request.toJson());
+}
+
+bool cartesiapp::Cartesia::cancelTTSContext(const request::TTSCancelContextRequest& request) const
+{
+    return _clientImpl->sendWebsocketData(request.toJson());
+}
+

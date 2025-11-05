@@ -35,6 +35,14 @@ find_package(spdlog REQUIRED CONFIG)
 # add nlohmann_json for JSON handling
 find_package(nlohmann_json REQUIRED CONFIG)
 
+# fetch base64
+set(BASE64_ENABLE_TESTING OFF CACHE BOOL "Disable base64 testing" FORCE)
+FetchContent_Declare(
+    base64
+    GIT_REPOSITORY https://github.com/tobiaslocker/base64.git
+)
+FetchContent_MakeAvailable(base64)
+
 include_directories(${Boost_INCLUDE_DIRS})
 include_directories(${OPENSSL_INCLUDE_DIR})
 
@@ -55,6 +63,7 @@ target_link_libraries(cartesiapp
     spdlog::spdlog
     nlohmann_json::nlohmann_json
     ${OPENSSL_LIBRARIES}
+    base64
 )
 
 # Generate export header

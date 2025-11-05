@@ -93,16 +93,28 @@ namespace cartesiapp {
         void unregisterListener();
 
         /**
+         * @brief Starts the TTS WebSocket connection.
+         * @return True if the connection was started successfully, false otherwise.
+         */
+        bool startTTSWebsocketConnection() const;
+
+        /**
+         * @brief Stops the TTS WebSocket connection.
+         * @return True if the connection was stopped successfully, false otherwise.
+         */
+        bool stopTTSWebsocketConnection() const;
+
+        /**
          * @brief Initiates a Text-to-Speech generation request via streaming.
          * @param request The TTSGenerationRequest containing generation parameters.
          */
-        void requestTTS(const request::TTSGenerationRequest& request) const;
+        bool requestTTS(const request::TTSGenerationRequest& request) const;
 
         /**
          * @brief Cancels an ongoing TTS context/session.
          * @param request The TTSCancelContextRequest containing the context ID to cancel.
          */
-        void cancelTTSContext(const request::TTSCancelContextRequest& request) const;
+        bool cancelTTSContext(const request::TTSCancelContextRequest& request) const;
 
         private:
         std::unique_ptr<CartesiaClientImpl> _clientImpl;
@@ -123,8 +135,9 @@ namespace cartesiapp {
 
         /**
          * @brief Callback method invoked when the WebSocket connection is disconnected.
+         * @param reason The reason for the disconnection.
          */
-        virtual void onDisconnected() = 0;
+        virtual void onDisconnected(const std::string& reason) = 0;
 
         /**
          * @brief Callback method invoked when a network error occurs.

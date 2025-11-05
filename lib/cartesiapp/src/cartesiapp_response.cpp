@@ -1,6 +1,7 @@
 #include "cartesiapp_response.hpp"
 #include <nlohmann/json.hpp>
 #include "cartesiapp_response.hpp"
+#include <base64.hpp>
 
 using namespace cartesiapp::response;
 
@@ -77,7 +78,7 @@ cartesiapp::response::tts::AudioChunkResponse cartesiapp::response::tts::AudioCh
     nlohmann::json jsonObj = nlohmann::json::parse(jsonStr);
     AudioChunkResponse audioChunkResponse;
     audioChunkResponse.type = std::move(jsonObj["type"].get<std::string>());
-    audioChunkResponse.data = std::move(jsonObj["data"].get<std::string>());
+    audioChunkResponse.data = std::move(base64::from_base64(jsonObj["data"].get<std::string>()));
     audioChunkResponse.done = jsonObj["done"].get<bool>();
     audioChunkResponse.status_code = jsonObj["status_code"].get<int>();
     audioChunkResponse.step_time = jsonObj["step_time"].get<double>();

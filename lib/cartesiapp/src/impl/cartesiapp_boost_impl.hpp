@@ -9,6 +9,8 @@
 #include <fstream>
 #include <chrono>
 #include <thread>
+#include <mutex>
+#include <atomic>
 
 #include <nlohmann/json.hpp>
 #include <spdlog/spdlog.h>
@@ -45,21 +47,153 @@ namespace cartesiapp {
             _apiKey(apiKey),
             _apiVersion(apiVersion),
             _resolver(_ioContext),
-            _sslContext(ssl::context::tls_client),
+            _sslContext(ssl::context::tlsv12_client),
             _websocket(_ioContext, _sslContext),
             _verifyCertificates(verifyCertificates) {
-
-            try {
-                bool c = connectWebsocket(verifyCertificates);
-                spdlog::debug(">>>>>>>>>>>> Websocket connected: {}", c);
-            }
-            catch (const std::exception& ex) {
-                spdlog::error(">>>>>>>>>>>>>> Error connecting websocket: {}", ex.what());
-            }
         }
 
         ~CartesiaClientImpl() {
+            disconnectWebsocket();
+        }
 
+        bool sendWebsocketData(const std::string& data) {
+            if (!_websocket.is_open()) {
+                spdlog::error("sendWebsocketData: WebSocket is not connected.");
+                return false;
+            }
+            beast::error_code ec;
+            _websocket.text(true);
+            _websocket.write(net::buffer(data), ec);
+            if (ec) {
+                spdlog::error("sendWebsocketData: Error sending data over WebSocket: {}, {}, {}", ec.message(), ec.value(), ec.category().name());
+                return false;
+            }
+            return true;
+        }
+
+        bool connectWebsocketAndStartThread(const std::function<void(const std::string&)>& dataReadCallback,
+            const std::function<void()>& onConnectedCallback,
+            const std::function<void(const std::string& message)>& onDisconnectedCallback,
+            const std::function<void(const std::string& errorMessage)>& onErrorCallback) {
+            if (!connectWebsocket(_verifyCertificates)) {
+                return false;
+            }
+            else {
+                if (onConnectedCallback) {
+                    onConnectedCallback();
+                }
+            }
+
+            _shouldStop.store(false);
+
+            _workerThread = std::thread([this,
+                dataReadCallback,
+                onDisconnectedCallback,
+                onErrorCallback]()
+                {
+                    beast::flat_buffer buffer;
+                    beast::error_code ec;
+                    try {
+                        while (!_shouldStop.load())
+                        {
+                            {
+                                std::scoped_lock lock(_websocketMutex);
+                                if (!_websocket.is_open() || _shouldStop.load()) {
+                                    spdlog::warn("WebSocket is no longer open, stopping data reception thread.");
+                                    break;
+                                }
+                            }
+
+                            size_t bytesRead = 0;
+                            {
+                                std::scoped_lock lock(_websocketMutex);
+                                bytesRead = _websocket.read(buffer, ec);
+                            }
+
+                            if (ec || _shouldStop.load())
+                            {
+                                switch (ec.value())
+                                {
+                                case beast::websocket::error::closed:
+                                case net::error::eof:
+                                {
+                                    spdlog::warn("WebSocket closed by server: {}", ec.message());
+                                    if (onDisconnectedCallback)
+                                    {
+                                        onDisconnectedCallback(ec.message());
+                                    }
+                                }
+                                break;
+                                default:
+                                {
+                                    spdlog::error("Error reading from WebSocket: {}, {}, {}", ec.message(), ec.value(), ec.category().name());
+                                    if (onErrorCallback)
+                                    {
+                                        onErrorCallback(ec.message());
+                                    }
+                                    if (onDisconnectedCallback)
+                                    {
+                                        onDisconnectedCallback(ec.message());
+                                    }
+                                }
+                                break;
+                                }
+                                break;
+                            }
+                            std::string data(beast::buffers_to_string(buffer.data()));
+                            buffer.consume(bytesRead);
+                            dataReadCallback(data);
+                        }
+                    }
+                    catch (std::exception& e)
+                    {
+                        if (!_shouldStop) {
+                            spdlog::error("Error in data reception thread: {}", e.what());
+                            if (onErrorCallback) {
+                                onErrorCallback(e.what());
+                            }
+                            if (onDisconnectedCallback) {
+                                onDisconnectedCallback(e.what());
+                            }
+                        }
+                    }
+                });
+            return true;
+        }
+
+        bool disconnectWebsocket() {
+            if (!_websocket.is_open() || _shouldStop.load()) {
+                spdlog::warn("disconnectWebsocket: WebSocket is already disconnected.");
+                return false;
+            }
+
+            _shouldStop.store(true);
+            {
+                std::scoped_lock lock(_websocketMutex);
+                try {
+                    beast::error_code ec;
+                    _websocket.close(beast::websocket::close_code::normal, ec);
+                    if (ec) {
+                        spdlog::error("disconnectWebsocket: Error closing WebSocket: {}, {}, {}", ec.message(), ec.value(), ec.category().name());
+                    }
+                }
+                catch (const std::exception& ex) {
+                    spdlog::error("disconnectWebsocket: Exception while closing WebSocket: {}", ex.what());
+                }
+            }
+
+            {
+                std::scoped_lock lock(_websocketMutex);
+                try {
+                    if (_workerThread.joinable()) {
+                        _workerThread.join();
+                    }
+                }
+                catch (const std::exception& ex) {
+                    spdlog::error("disconnectWebsocket: Error joining worker thread: {}", ex.what());
+                }
+            }
+            return true;
         }
 
         void overrideApiVersion(const std::string& apiVersion) {
@@ -410,11 +544,12 @@ namespace cartesiapp {
         {
             try
             {
+                std::scoped_lock lock(_websocketMutex);
                 auto const results = _resolver.resolve(cartesiapp::request::constants::HOST, "443");
                 net::connect(_websocket.next_layer().lowest_layer(), results.begin(), results.end());
-                spdlog::info("Performing SSL handshake...");                
+                spdlog::info("Performing SSL handshake...");
+
                 _websocket.next_layer().set_verify_callback([verifyCertificates](bool preverified, ssl::verify_context& ctx) {
-                    return true;
                     // Log certificate info for debugging
                     X509_STORE_CTX* store_ctx = ctx.native_handle();
                     X509* cert = X509_STORE_CTX_get_current_cert(store_ctx);
@@ -431,7 +566,19 @@ namespace cartesiapp {
                     }
                     return true;
                     });
-                _websocket.next_layer().set_verify_mode(ssl::verify_none);
+                // Set SNI hostname for websocket
+                if (!SSL_set_tlsext_host_name(_websocket.next_layer().native_handle(), cartesiapp::request::constants::HOST)) {
+                    beast::error_code ec{ static_cast<int>(::ERR_get_error()), net::error::get_ssl_category() };
+                    throw beast::system_error{ ec };
+                }
+                // Set WebSocket handshake headers including api key and version
+                _websocket.set_option(beast::websocket::stream_base::decorator(
+                    [this](beast::websocket::request_type& req) {
+                        req.set(http::field::user_agent, cartesiapp::request::constants::USER_AGENT);
+                        req.set(cartesiapp::request::constants::HEADER_CARTESIA_VERSION, _apiVersion);
+                        req.set("X-API-Key", _apiKey);
+                    }));
+                _websocket.next_layer().set_verify_mode(ssl::verify_peer);
                 _websocket.next_layer().handshake(ssl::stream_base::handshake_type::client);
                 _websocket.handshake(cartesiapp::request::constants::HOST, cartesiapp::request::constants::ENDPOINT_TTS_WEBSOCKET);
                 spdlog::info("WebSocket connected successfully!");
@@ -448,8 +595,10 @@ namespace cartesiapp {
         std::string _apiKey;
         std::string _apiVersion;
         bool _verifyCertificates;
-
+        bool _keepWebsocketRunning = false;
         std::thread _workerThread;
+        std::atomic_bool _shouldStop = false;
+        std::mutex _websocketMutex;
 
         // Boost.Asio components, mutable to allow modification in const methods that are exposed to users
         mutable ssl::context _sslContext;
