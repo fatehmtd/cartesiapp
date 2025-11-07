@@ -100,7 +100,7 @@ std::string cartesiapp::request::GenerationConfig::toJson() const
     return jsonObj.dump();
 }
 
-std::string cartesiapp::request::STTBatchRequest::toQueryParams() const
+std::string cartesiapp::request::stt::BatchRequest::toQueryParams() const
 {
     std::stringstream queryParams;
     bool firstParam = true;
@@ -115,7 +115,7 @@ std::string cartesiapp::request::STTBatchRequest::toQueryParams() const
     return queryParams.str();
 }
 
-std::string cartesiapp::request::TTSGenerationRequest::toJson() const
+std::string cartesiapp::request::tts::GenerationRequest::toJson() const
 {
     nlohmann::json jsonObj;
     jsonObj["model_id"] = model_id;
@@ -153,7 +153,7 @@ std::string cartesiapp::request::TTSGenerationRequest::toJson() const
     return jsonObj.dump();
 }
 
-std::string cartesiapp::request::TTSCancelContextRequest::toJson() const
+std::string cartesiapp::request::tts::CancelContextRequest::toJson() const
 {
     nlohmann::json jsonObj;
     jsonObj["context_id"] = context_id;

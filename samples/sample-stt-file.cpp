@@ -9,7 +9,7 @@
  * @brief Test Speech-to-Text functionality with a local audio file.
  */
 bool testTTSWithStreaming(cartesiapp::Cartesia& client) {
-    cartesiapp::request::STTBatchRequest sttRequest;
+    cartesiapp::request::stt::BatchRequest sttRequest;
     // you can omit optional parameters to use defaults from the actual file's header
     //sttRequest.language = "en";
     //sttRequest.sample_rate = 16000;

@@ -48,7 +48,7 @@ std::string cartesiapp::Cartesia::ttsBytes(const request::TTSBytesRequest& reque
 }
 
 response::stt::BatchResponse cartesiapp::Cartesia::sttWithFile(const std::string& filePath,
-    const request::STTBatchRequest& request) const
+    const request::stt::BatchRequest& request) const
 {
     std::ifstream fileStream(filePath, std::ios::binary);
     if (!fileStream) {
@@ -59,7 +59,7 @@ response::stt::BatchResponse cartesiapp::Cartesia::sttWithFile(const std::string
 }
 
 response::stt::BatchResponse cartesiapp::Cartesia::sttWithBytes(const std::vector<char>& audioBytes,
-    const request::STTBatchRequest& request) const
+    const request::stt::BatchRequest& request) const
 {
     return _clientImpl->sttWithBytes(audioBytes, request);
 }
@@ -133,12 +133,12 @@ bool cartesiapp::Cartesia::stopTTSWebsocketConnection() const
     return _clientImpl->disconnectWebsocket();
 }
 
-bool cartesiapp::Cartesia::requestTTS(const request::TTSGenerationRequest& request) const
+bool cartesiapp::Cartesia::requestTTS(const request::tts::GenerationRequest& request) const
 {
     return _clientImpl->sendWebsocketData(request.toJson());
 }
 
-bool cartesiapp::Cartesia::cancelTTSContext(const request::TTSCancelContextRequest& request) const
+bool cartesiapp::Cartesia::cancelTTSContext(const request::tts::CancelContextRequest& request) const
 {
     return _clientImpl->sendWebsocketData(request.toJson());
 }

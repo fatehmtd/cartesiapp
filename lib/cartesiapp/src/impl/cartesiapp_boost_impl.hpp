@@ -85,22 +85,22 @@ namespace cartesiapp {
                 }
             }
 
-            _workerThread = std::thread([this,
+            _ttsWorkerThread = std::thread([this,
                 dataReadCallback,
                 onDisconnectedCallback,
                 onErrorCallback]()
                 {
                     beast::flat_buffer buffer;
                     beast::error_code ec;
-                    _shouldStop.store(false);
+                    _ttsShouldStopFlag.store(false);
                     try {
-                        while (!_shouldStop.load())
+                        while (!_ttsShouldStopFlag.load())
                         {
                             size_t bytesRead = 0;
                             // check if websocket is still open and we should continue
                             {
-                                std::scoped_lock lock(_websocketMutex);
-                                if (!_websocket.is_open() || _shouldStop.load()) {
+                                std::scoped_lock lock(_ttsWebsocketMutex);
+                                if (!_websocket.is_open() || _ttsShouldStopFlag.load()) {
                                     spdlog::warn("WebSocket is no longer open or stop requested, stopping data reception thread.");
                                     break;
                                 }
@@ -115,7 +115,7 @@ namespace cartesiapp {
                                 ec = beast::error_code(net::error::operation_aborted, net::error::get_system_category());
                             }
 
-                            if (ec || _shouldStop.load())
+                            if (ec || _ttsShouldStopFlag.load())
                             {
                                 // Check for expected disconnection scenarios
                                 if (ec == beast::websocket::error::closed || 
@@ -124,7 +124,7 @@ namespace cartesiapp {
                                     ec == net::error::connection_aborted ||
                                     ec == net::error::connection_reset)
                                 {
-                                    if (!_shouldStop.load()) {
+                                    if (!_ttsShouldStopFlag.load()) {
                                         spdlog::warn("WebSocket closed by server or network error: {}", ec.message());
                                         if (onDisconnectedCallback)
                                         {
@@ -132,7 +132,7 @@ namespace cartesiapp {
                                         }
                                     }
                                 }
-                                else if (!_shouldStop.load()) 
+                                else if (!_ttsShouldStopFlag.load()) 
                                 {
                                     spdlog::error("Error reading from WebSocket: {}, {}, {}", ec.message(), ec.value(), ec.category().name());
                                     if (onErrorCallback)
@@ -148,7 +148,7 @@ namespace cartesiapp {
                             }
                             
                             // Only process data if we successfully read and haven't been asked to stop
-                            if (!ec && !_shouldStop.load() && bytesRead > 0) {
+                            if (!ec && !_ttsShouldStopFlag.load() && bytesRead > 0) {
                                 std::string data(beast::buffers_to_string(buffer.data()));
                                 buffer.consume(bytesRead);
                                 dataReadCallback(data);
@@ -157,7 +157,7 @@ namespace cartesiapp {
                     }
                     catch (std::exception& e)
                     {
-                        if (!_shouldStop.load()) {
+                        if (!_ttsShouldStopFlag.load()) {
                             spdlog::error("Error in data reception thread: {}", e.what());
                             if (onErrorCallback) {
                                 onErrorCallback(e.what());
@@ -176,21 +176,21 @@ namespace cartesiapp {
         bool disconnectWebsocket() {
             // check if websocket is already disconnected
             {
-                std::scoped_lock lock(_websocketMutex);
-                if (!_websocket.is_open() || _shouldStop.load()) {
+                std::scoped_lock lock(_ttsWebsocketMutex);
+                if (!_websocket.is_open() || _ttsShouldStopFlag.load()) {
                     spdlog::warn("disconnectWebsocket: WebSocket is already disconnected.");
                     return false;
                 }
             }
 
             // mark to stop the worker thread
-            _shouldStop.store(true);
+            _ttsShouldStopFlag.store(true);
 
             // First, forcefully shutdown the underlying TCP socket to unblock any pending reads
             {
                 try {
                     beast::error_code ec;
-                    std::scoped_lock lock(_websocketMutex);
+                    std::scoped_lock lock(_ttsWebsocketMutex);
                     // Shutdown the underlying TCP socket to interrupt any blocking read operations
                     beast::get_lowest_layer(_websocket).close(ec);
                     if (ec) {
@@ -205,8 +205,8 @@ namespace cartesiapp {
             // join the worker thread first (it should exit quickly now that socket is closed)
             {
                 try {
-                    if (_workerThread.joinable()) {
-                        _workerThread.join();
+                    if (_ttsWorkerThread.joinable()) {
+                        _ttsWorkerThread.join();
                     }
                 }
                 catch (const std::exception& ex) {
@@ -218,7 +218,7 @@ namespace cartesiapp {
             {
                 try {
                     beast::error_code ec;
-                    std::scoped_lock lock(_websocketMutex);
+                    std::scoped_lock lock(_ttsWebsocketMutex);
                     if (_websocket.is_open()) {
                         _websocket.close(beast::websocket::close_code::normal, ec);
                         if (ec && ec != beast::websocket::error::closed && ec != net::error::eof) {
@@ -421,7 +421,7 @@ namespace cartesiapp {
         }
 
         response::stt::BatchResponse sttWithBytes(const std::vector<char>& audioBytes,
-            const request::STTBatchRequest& request,
+            const request::stt::BatchRequest& request,
             const std::string& mime = "application/octet-stream") const {
             spdlog::debug("Performing STT Batch request...");
 
@@ -582,7 +582,7 @@ namespace cartesiapp {
         {
             try
             {
-                std::scoped_lock lock(_websocketMutex);
+                std::scoped_lock lock(_ttsWebsocketMutex);
                 auto const results = _resolver.resolve(cartesiapp::request::constants::HOST, "443");
                 net::connect(_websocket.next_layer().lowest_layer(), results.begin(), results.end());
                 spdlog::info("Performing SSL handshake...");
@@ -634,9 +634,9 @@ namespace cartesiapp {
         std::string _apiVersion;
         bool _verifyCertificates;
         bool _keepWebsocketRunning = false;
-        std::thread _workerThread;
-        std::atomic_bool _shouldStop = false;
-        std::mutex _websocketMutex;
+        std::thread _ttsWorkerThread;
+        std::atomic_bool _ttsShouldStopFlag = false;
+        std::mutex _ttsWebsocketMutex;
 
         // Boost.Asio components, mutable to allow modification in const methods that are exposed to users
         mutable ssl::context _sslContext;

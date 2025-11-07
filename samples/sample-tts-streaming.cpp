@@ -109,7 +109,7 @@ bool testTTSWithStreaming(cartesiapp::Cartesia& client) {
     voiceListRequest.gender = cartesiapp::request::voice_gender::FEMININE;
     auto voices = client.getVoiceList(voiceListRequest);
 
-    cartesiapp::request::TTSGenerationRequest ttsRequest;
+    cartesiapp::request::tts::GenerationRequest ttsRequest;
     // uuid for context ID can be generated as needed
     ttsRequest.context_id = generateSimpleID();
     ttsRequest.transcript = "Hello, this is a test of the Cartesia Text to Speech streaming API.";

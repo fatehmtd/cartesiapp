@@ -264,67 +264,74 @@ namespace cartesiapp::request {
         constexpr const char* WORD = "word";
     }
 
-    /**
-     * @brief Request structure for Speech-to-Text batch transcription
-     */
-    struct CARTESIAPP_EXPORT STTBatchRequest {
-        // query
-        std::optional<std::string> encoding = stt_encoding::PCM_S16LE;
-        std::optional<int> sample_rate;
-
-        // body
-        std::string model = stt_model::INK_WHISPER;
-
-        std::optional<std::string> language;
-
-        // if not provided, defaults to WORD
-        std::vector<std::string> timestamp_granularities = { timestamp_granularity::WORD };
-
-        // creates query parameters string
-        std::string toQueryParams() const;
-    };
-
-    /**
-     * @brief Request structure for Text-to-Speech generation via streaming
-     */
-    struct CARTESIAPP_EXPORT TTSGenerationRequest {
-        std::string model_id = tts_model::SONIC_3;
-        std::string transcript;
-        Voice voice;
-        GenerationConfig generation_config;
-        OutputFormat output_format;
-
-        std::optional<std::string> language;
-        /**
-         * @brief An optional context ID to continue a previous TTS session. If provided, the generation will continue from the last state associated with this context ID.
-         */
-        std::optional<std::string> context_id;
+    namespace stt {
 
         /**
-         * @brief A flag indicating whether to continue the TTS generation from the previous context. If true, the generation will pick up from where it left off in the previous session. Defaults to false.
+         * @brief Request structure for Speech-to-Text batch transcription
          */
-        std::optional<bool> continue_;
+        struct CARTESIAPP_EXPORT BatchRequest {
+            // query
+            std::optional<std::string> encoding = stt_encoding::PCM_S16LE;
+            std::optional<int> sample_rate;
+
+            // body
+            std::string model = stt_model::INK_WHISPER;
+
+            std::optional<std::string> language;
+
+            // if not provided, defaults to WORD
+            std::vector<std::string> timestamp_granularities = { timestamp_granularity::WORD };
+
+            // creates query parameters string
+            std::string toQueryParams() const;
+        };
+
+    }
+
+    namespace tts {
         /**
-         * @brief The maximum time in milliseconds to buffer text before starting generation. Values between [0, 5000]ms are supported. Defaults to 3000ms.
+         * @brief Request structure for Text-to-Speech generation via streaming
          */
-        std::optional<int> max_buffer_delay_ms = 3000;
-        std::optional<bool> flush;
-        std::optional<bool> add_timestamps;
-        std::optional<bool> add_phoneme_timestamps;
-        std::optional<bool> use_normalized_timestamps;
-        std::optional<std::string> pronunciation_dict_id;
+        struct CARTESIAPP_EXPORT GenerationRequest {
+            std::string model_id = tts_model::SONIC_3;
+            std::string transcript;
+            Voice voice;
+            GenerationConfig generation_config;
+            OutputFormat output_format;
 
-        std::string toJson() const;
-    };
+            std::optional<std::string> language;
+            /**
+             * @brief An optional context ID to continue a previous TTS session. If provided, the generation will continue from the last state associated with this context ID.
+             */
+            std::optional<std::string> context_id;
 
-    /**
-     * @brief Request structure to cancel an ongoing TTS context/session
-     */
-    struct CARTESIAPP_EXPORT TTSCancelContextRequest {
-        std::string context_id;
-        bool cancel;
-        std::string toJson() const;
-    };
+            /**
+             * @brief A flag indicating whether to continue the TTS generation from the previous context. If true, the generation will pick up from where it left off in the previous session. Defaults to false.
+             */
+            std::optional<bool> continue_;
+            /**
+             * @brief The maximum time in milliseconds to buffer text before starting generation. Values between [0, 5000]ms are supported. Defaults to 3000ms.
+             */
+            std::optional<int> max_buffer_delay_ms = 3000;
+            std::optional<bool> flush;
+            std::optional<bool> add_timestamps;
+            std::optional<bool> add_phoneme_timestamps;
+            std::optional<bool> use_normalized_timestamps;
+            std::optional<std::string> pronunciation_dict_id;
+
+            std::string toJson() const;
+        };
+
+        /**
+         * @brief Request structure to cancel an ongoing TTS context/session
+         */
+        struct CARTESIAPP_EXPORT CancelContextRequest {
+            std::string context_id;
+            bool cancel;
+            std::string toJson() const;
+        };
+
+    }
 }
 
 #endif // CARTESIAPP_REQUEST_HPP

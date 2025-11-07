@@ -15,6 +15,9 @@ namespace cartesiapp {
     // Forward declaration of TTSResponseListener class
     class TTSResponseListener;
 
+    // Forward declaration of STTResponseListener class
+    class STTResponseListener;
+
     // Forward declaration of implementation class
     class CartesiaClientImpl;
 
@@ -66,20 +69,20 @@ namespace cartesiapp {
         /**
          * @brief Performs a Speech-to-Text batch transcription using an audio file.
          * @param filePath The path to the audio file to transcribe.
-         * @param request The STTBatchRequest containing transcription parameters.
+         * @param request The BatchRequest containing transcription parameters.
          * @return A BatchResponse containing the transcription result.
          */
         response::stt::BatchResponse sttWithFile(const std::string& filePath,
-            const request::STTBatchRequest& request) const;
+            const request::stt::BatchRequest& request) const;
 
         /**
          * @brief Performs a Speech-to-Text batch transcription using raw audio bytes.
          * @param audioBytes The raw audio bytes to transcribe.
-         * @param request The STTBatchRequest containing transcription parameters.
+         * @param request The BatchRequest containing transcription parameters.
          * @return A BatchResponse containing the transcription result.
          */
         response::stt::BatchResponse sttWithBytes(const std::vector<char>& audioBytes,
-            const request::STTBatchRequest& request) const;
+            const request::stt::BatchRequest& request) const;
 
         /**
          * @brief Registers a TTS response listener.
@@ -106,15 +109,15 @@ namespace cartesiapp {
 
         /**
          * @brief Initiates a Text-to-Speech generation request via streaming.
-         * @param request The TTSGenerationRequest containing generation parameters.
+         * @param request The GenerationRequest containing generation parameters.
          */
-        bool requestTTS(const request::TTSGenerationRequest& request) const;
+        bool requestTTS(const request::tts::GenerationRequest& request) const;
 
         /**
          * @brief Cancels an ongoing TTS context/session.
          * @param request The TTSCancelContextRequest containing the context ID to cancel.
          */
-        bool cancelTTSContext(const request::TTSCancelContextRequest& request) const;
+        bool cancelTTSContext(const request::tts::CancelContextRequest& request) const;
 
         private:
         std::unique_ptr<CartesiaClientImpl> _clientImpl;
