@@ -46,7 +46,7 @@ VoiceListPage cartesiapp::response::VoiceListPage::fromJson(const std::string& j
     return voiceListPage;
 }
 
-cartesiapp::response::stt::BatchResponse::WordTiming cartesiapp::response::stt::BatchResponse::WordTiming::fromJson(const std::string& jsonStr)
+cartesiapp::response::stt::WordTiming cartesiapp::response::stt::WordTiming::fromJson(const std::string& jsonStr)
 {
     nlohmann::json jsonObj = nlohmann::json::parse(jsonStr);
     WordTiming wordTiming;
@@ -56,10 +56,10 @@ cartesiapp::response::stt::BatchResponse::WordTiming cartesiapp::response::stt::
     return wordTiming;
 }
 
-cartesiapp::response::stt::BatchResponse cartesiapp::response::stt::BatchResponse::fromJson(const std::string& jsonStr)
+cartesiapp::response::stt::TranscriptionResponse cartesiapp::response::stt::TranscriptionResponse::fromJson(const std::string& jsonStr)
 {
     nlohmann::json jsonObj = nlohmann::json::parse(jsonStr);
-    BatchResponse sttResponse;
+    TranscriptionResponse sttResponse;
     sttResponse.type = std::move(jsonObj["type"].get<std::string>());
     sttResponse.text = std::move(jsonObj["text"].get<std::string>());
     sttResponse.language = std::move(jsonObj["language"].get<std::string>());
@@ -68,7 +68,7 @@ cartesiapp::response::stt::BatchResponse cartesiapp::response::stt::BatchRespons
     sttResponse.request_id = std::move(jsonObj["request_id"].get<std::string>());
     
     for (const auto& wordJson : jsonObj["words"]) {
-        sttResponse.words.push_back(BatchResponse::WordTiming::fromJson(wordJson.dump()));
+        sttResponse.words.push_back(WordTiming::fromJson(wordJson.dump()));
     }
     return sttResponse;
 }
@@ -181,5 +181,33 @@ cartesiapp::response::tts::ErrorResponse cartesiapp::response::tts::ErrorRespons
     if (jsonObj.contains("context_id") && !jsonObj["context_id"].is_null()) {
         errorResponse.context_id = std::move(jsonObj["context_id"].get<std::string>());
     }
+    return errorResponse;
+}
+
+cartesiapp::response::stt::FlushDoneResponse cartesiapp::response::stt::FlushDoneResponse::fromJson(const std::string& jsonStr)
+{
+    nlohmann::json jsonObj = nlohmann::json::parse(jsonStr);
+    FlushDoneResponse flushDoneResponse;
+    flushDoneResponse.type = std::move(jsonObj["type"].get<std::string>());
+    flushDoneResponse.request_id = std::move(jsonObj["request_id"].get<std::string>());
+    return flushDoneResponse;
+}
+
+cartesiapp::response::stt::DoneResponse cartesiapp::response::stt::DoneResponse::fromJson(const std::string& jsonStr)
+{
+    nlohmann::json jsonObj = nlohmann::json::parse(jsonStr);
+    DoneResponse doneResponse;
+    doneResponse.type = std::move(jsonObj["type"].get<std::string>());
+    doneResponse.request_id = std::move(jsonObj["request_id"].get<std::string>());
+    return doneResponse;
+}
+
+cartesiapp::response::stt::ErrorResponse cartesiapp::response::stt::ErrorResponse::fromJson(const std::string& jsonStr)
+{
+    nlohmann::json jsonObj = nlohmann::json::parse(jsonStr);
+    ErrorResponse errorResponse;
+    errorResponse.type = std::move(jsonObj["type"].get<std::string>());
+    errorResponse.error = std::move(jsonObj["error"].get<std::string>());
+    errorResponse.request_id = std::move(jsonObj["request_id"].get<std::string>());
     return errorResponse;
 }

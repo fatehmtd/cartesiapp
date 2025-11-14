@@ -286,6 +286,19 @@ namespace cartesiapp::request {
             std::string toQueryParams() const;
         };
 
+        struct CARTESIAPP_EXPORT StreamingRequest {
+            std::string model = stt_model::INK_WHISPER;
+
+            std::string language;
+
+            std::string encoding;
+
+            std::string sample_rate;
+
+            std::string min_volume;
+
+            std::string api_key;
+        };
     }
 
     namespace tts {

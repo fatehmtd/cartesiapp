@@ -98,7 +98,7 @@ class TTSResponseListener : public cartesiapp::TTSResponseListener {
 bool testTTSWithStreaming(cartesiapp::Cartesia& client) {
 
     std::shared_ptr<TTSResponseListener> listener = std::make_shared<TTSResponseListener>();
-    client.registerListener(listener);
+    client.registerTTSListener(listener);
 
     if (!client.startTTSWebsocketConnection()) {
         spdlog::error("Failed to start TTS WebSocket connection.");
@@ -136,7 +136,7 @@ bool testTTSWithStreaming(cartesiapp::Cartesia& client) {
     auto durationToFirstByte = std::chrono::duration_cast<std::chrono::milliseconds>(firstByteTime - startTime).count();
     spdlog::info("Time from request start to first audio byte received: {} ms", durationToFirstByte);
 
-    client.unregisterListener();
+    client.unregisterTTSListener();
 
     return true;
 }

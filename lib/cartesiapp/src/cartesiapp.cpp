@@ -14,7 +14,13 @@ cartesiapp::Cartesia::Cartesia(const std::string& apiKey, const std::string& api
 
 cartesiapp::Cartesia::~Cartesia()
 {
+    // Stop and unregister STT listener
+    unregisterSTTListener();    
+    stopSTTWebsocketConnection();
 
+    // Stop and unregister TTS listener
+    unregisterTTSListener();
+    stopTTSWebsocketConnection();
 }
 
 void cartesiapp::Cartesia::overrideApiVersion(const std::string& apiVersion)
@@ -47,7 +53,7 @@ std::string cartesiapp::Cartesia::ttsBytes(const request::TTSBytesRequest& reque
     return _clientImpl->ttsBytes(request);
 }
 
-response::stt::BatchResponse cartesiapp::Cartesia::sttWithFile(const std::string& filePath,
+response::stt::TranscriptionResponse cartesiapp::Cartesia::sttWithFile(const std::string& filePath,
     const request::stt::BatchRequest& request) const
 {
     std::ifstream fileStream(filePath, std::ios::binary);
@@ -58,70 +64,84 @@ response::stt::BatchResponse cartesiapp::Cartesia::sttWithFile(const std::string
     return sttWithBytes(std::move(audioBytes), request);
 }
 
-response::stt::BatchResponse cartesiapp::Cartesia::sttWithBytes(const std::vector<char>& audioBytes,
+response::stt::TranscriptionResponse cartesiapp::Cartesia::sttWithBytes(const std::vector<char>& audioBytes,
     const request::stt::BatchRequest& request) const
 {
     return _clientImpl->sttWithBytes(audioBytes, request);
 }
 
-void cartesiapp::Cartesia::registerListener(std::weak_ptr<TTSResponseListener> listener)
+bool cartesiapp::Cartesia::startSTTWebsocketConnection() const
 {
-    _listener = listener;
+    return false;
 }
 
-void cartesiapp::Cartesia::unregisterListener()
+bool cartesiapp::Cartesia::stopSTTWebsocketConnection() const
 {
-    _listener.reset();
+    return false;
+}
+
+void cartesiapp::Cartesia::registerSTTListener(std::weak_ptr<STTResponseListener> listener)
+{
+    _sttListener = listener;
+}
+
+void cartesiapp::Cartesia::unregisterSTTListener()
+{
+    _sttListener.reset();
+}
+
+void cartesiapp::Cartesia::registerTTSListener(std::weak_ptr<TTSResponseListener> listener)
+{
+    _ttsListener = listener;
+}
+
+void cartesiapp::Cartesia::unregisterTTSListener()
+{
+    _ttsListener.reset();
 }
 
 bool cartesiapp::Cartesia::startTTSWebsocketConnection() const
 {
     return _clientImpl->connectWebsocketAndStartThread(
         [this](const std::string& data) {
-            auto listener = _listener.lock();
+            auto listener = _ttsListener.lock();
             if (listener) {
                 nlohmann::json jsonData = nlohmann::json::parse(data);
                 std::string responseType = jsonData.value("type", "");
-                if (responseType == "chunk") {
-                    cartesiapp::response::tts::AudioChunkResponse audioChunkResponse = std::move(cartesiapp::response::tts::AudioChunkResponse::fromJson(data));
-                    listener->onAudioChunkReceived(std::move(audioChunkResponse));
+                if (responseType == tts_events::AUDIO_CHUNK) {
+                    listener->onAudioChunkReceived(std::move(cartesiapp::response::tts::AudioChunkResponse::fromJson(data)));
                 }
-                else if (responseType == "timestamps") {
-                    cartesiapp::response::tts::WordTimestampsResponse wordTimestampsResponse = std::move(cartesiapp::response::tts::WordTimestampsResponse::fromJson(data));
-                    listener->onWordTimestampsReceived(std::move(wordTimestampsResponse));
+                else if (responseType == tts_events::WORD_TIMESTAMPS) {
+                    listener->onWordTimestampsReceived(std::move(cartesiapp::response::tts::WordTimestampsResponse::fromJson(data)));
                 }
-                else if (responseType == "phoneme_timestamps") {
-                    cartesiapp::response::tts::PhonemeTimestampsResponse phonemeTimestampsResponse = cartesiapp::response::tts::PhonemeTimestampsResponse::fromJson(data);
-                    listener->onPhonemeTimestampsReceived(std::move(phonemeTimestampsResponse));
+                else if (responseType == tts_events::PHONEME_TIMESTAMPS) {
+                    listener->onPhonemeTimestampsReceived(std::move(cartesiapp::response::tts::PhonemeTimestampsResponse::fromJson(data)));
                 }
-                else if (responseType == "flush_done") {
-                    cartesiapp::response::tts::FlushDoneResponse flushDoneResponse = cartesiapp::response::tts::FlushDoneResponse::fromJson(data);
-                    listener->onFlushDoneReceived(std::move(flushDoneResponse));
+                else if (responseType == tts_events::FLUSH_DONE) {
+                    listener->onFlushDoneReceived(std::move(cartesiapp::response::tts::FlushDoneResponse::fromJson(data)));
                 }
-                else if (responseType == "done") {
-                    cartesiapp::response::tts::DoneResponse doneResponse = cartesiapp::response::tts::DoneResponse::fromJson(data);
-                    listener->onDoneReceived(std::move(doneResponse));
+                else if (responseType == tts_events::DONE) {
+                    listener->onDoneReceived(std::move(cartesiapp::response::tts::DoneResponse::fromJson(data)));
                 }
-                else if (responseType == "error") {
-                    cartesiapp::response::tts::ErrorResponse errorResponse = cartesiapp::response::tts::ErrorResponse::fromJson(data);
-                    listener->onError(std::move(errorResponse));
+                else if (responseType == tts_events::ERROR_) {
+                    listener->onError(std::move(cartesiapp::response::tts::ErrorResponse::fromJson(data)));
                 }
             }
         },
         [this]() {
-            auto listener = _listener.lock();
+            auto listener = _ttsListener.lock();
             if (listener) {
                 listener->onConnected();
             }
         },
         [this](const std::string& message) {
-            auto listener = _listener.lock();
+            auto listener = _ttsListener.lock();
             if (listener) {
                 listener->onDisconnected(message);
             }
         },
         [this](const std::string& errorMessage) {
-            auto listener = _listener.lock();
+            auto listener = _ttsListener.lock();
             if (listener) {
                 listener->onNetworkError(errorMessage);
             }
