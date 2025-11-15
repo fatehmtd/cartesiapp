@@ -4,8 +4,6 @@
   "description": "A C++ wrapper library for audio processing with REST API and WebSocket support using Cartesia.io services.",
   "homepage": "https://github.com/fatehmtd/cartesiapp",
   "dependencies": [
-    "boost-system",
-    "boost-thread", 
     "boost-beast",
     "spdlog",
     "nlohmann-json",

@@ -44,7 +44,8 @@ int main(int ac, char** av) {
     spdlog::set_level(spdlog::level::info);
 #endif
 
-    std::string apiKey = std::getenv("CARTESIA_API_KEY");
+    const char* apiKeyEnv = std::getenv("CARTESIA_API_KEY");
+    std::string apiKey = apiKeyEnv ? apiKeyEnv : "";
     std::string apiVersion = cartesiapp::request::api_versions::LATEST;
 
     cartesiapp::Cartesia client(apiKey, apiVersion);

@@ -762,9 +762,11 @@ namespace cartesiapp {
         bool connectWebsocketAndStartThread(const std::function<void(const std::string&)>& dataReadCallback,
             const std::function<void()>& onConnectedCallback,
             const std::function<void(const std::string& message)>& onDisconnectedCallback,
-            const std::function<void(const std::string& errorMessage)>& onErrorCallback) {
+            const std::function<void(const std::string& errorMessage)>& onErrorCallback,
+            const std::map<std::string, std::string>& headers,
+            const std::string& queryParams) {
 
-            if (!connectWebsocket(_verifyCertificates)) {
+            if (!connectWebsocket(headers, queryParams, _verifyCertificates)) {
                 return false;
             }
             else {
@@ -909,7 +911,9 @@ namespace cartesiapp {
             return std::move(sslStream);
         }
 
-        bool connectWebsocket(bool verifyCertificates)
+        bool connectWebsocket(const std::map<std::string, std::string>& headers,
+            const std::string& queryParams,
+            bool verifyCertificates)
         {
             try
             {
@@ -946,15 +950,18 @@ namespace cartesiapp {
                 }
                 // Set WebSocket handshake headers including api key and version
                 _websocket.set_option(beast::websocket::stream_base::decorator(
-                    [this](beast::websocket::request_type& req) {
+                    [this, &headers](beast::websocket::request_type& req) {
                         req.set(http::field::user_agent, cartesiapp::request::constants::USER_AGENT);
                         req.set(cartesiapp::request::constants::HEADER_CARTESIA_VERSION, _apiVersion);
                         req.set("X-API-Key", _apiKey);
+                        for (const auto& header : headers) {
+                            req.set(header.first, header.second);
+                        }
                     }));
                 _websocket.next_layer().set_verify_mode(ssl::verify_peer);
                 _websocket.next_layer().handshake(ssl::stream_base::handshake_type::client);
-                _websocket.handshake(cartesiapp::request::constants::HOST, _endpoint);
-                spdlog::info("WebSocket connected successfully!");
+                _websocket.handshake(cartesiapp::request::constants::HOST, _endpoint + queryParams);
+                spdlog::debug("WebSocket connected successfully: {}{}", _endpoint, queryParams);
             }
             catch (std::exception& e)
             {

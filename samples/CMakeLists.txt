@@ -26,7 +26,7 @@ add_dependencies(CartesiaPP_Sample_TTS_Bytes copy_data_folder)
 target_link_libraries(CartesiaPP_Sample_TTS_Bytes
     PRIVATE
     cartesiapp
-    spdlog::spdlog
+    spdlog::spdlog_header_only
 )
 
 # Speech-to-Text with File sample
@@ -37,7 +37,7 @@ add_executable(CartesiaPP_Sample_STT_File
 target_link_libraries(CartesiaPP_Sample_STT_File
     PRIVATE
     cartesiapp
-    spdlog::spdlog
+    spdlog::spdlog_header_only
 )
 
 # Text to Speech with streaming sample
@@ -48,7 +48,7 @@ add_executable(CartesiaPP_Sample_TTS_Streaming
 target_link_libraries(CartesiaPP_Sample_TTS_Streaming
     PRIVATE
     cartesiapp
-    spdlog::spdlog
+    spdlog::spdlog_header_only
 )
 
 # Speech to Text with streaming sample
@@ -59,7 +59,7 @@ add_executable(CartesiaPP_Sample_STT_Streaming
 target_link_libraries(CartesiaPP_Sample_STT_Streaming
     PRIVATE
     cartesiapp
-    spdlog::spdlog
+    spdlog::spdlog_header_only
 )
 
 
