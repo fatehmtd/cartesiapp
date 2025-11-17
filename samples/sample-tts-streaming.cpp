@@ -98,7 +98,7 @@ class TTSResponseListener : public cartesiapp::TTSResponseListener {
 bool testTTSWithStreaming(cartesiapp::Cartesia& client) {
 
     std::shared_ptr<TTSResponseListener> listener = std::make_shared<TTSResponseListener>();
-    client.registerListener(listener);
+    client.registerTTSListener(listener);
 
     if (!client.startTTSWebsocketConnection()) {
         spdlog::error("Failed to start TTS WebSocket connection.");
@@ -109,7 +109,7 @@ bool testTTSWithStreaming(cartesiapp::Cartesia& client) {
     voiceListRequest.gender = cartesiapp::request::voice_gender::FEMININE;
     auto voices = client.getVoiceList(voiceListRequest);
 
-    cartesiapp::request::TTSGenerationRequest ttsRequest;
+    cartesiapp::request::tts::GenerationRequest ttsRequest;
     // uuid for context ID can be generated as needed
     ttsRequest.context_id = generateSimpleID();
     ttsRequest.transcript = "Hello, this is a test of the Cartesia Text to Speech streaming API.";
@@ -136,7 +136,7 @@ bool testTTSWithStreaming(cartesiapp::Cartesia& client) {
     auto durationToFirstByte = std::chrono::duration_cast<std::chrono::milliseconds>(firstByteTime - startTime).count();
     spdlog::info("Time from request start to first audio byte received: {} ms", durationToFirstByte);
 
-    client.unregisterListener();
+    client.unregisterTTSListener();
 
     return true;
 }
@@ -149,7 +149,8 @@ int main(int ac, char** av) {
     spdlog::set_level(spdlog::level::info);
 #endif
 
-    std::string apiKey = std::getenv("CARTESIA_API_KEY");
+    const char* apiKeyEnv = std::getenv("CARTESIA_API_KEY");
+    std::string apiKey = apiKeyEnv ? apiKeyEnv : "";
     std::string apiVersion = cartesiapp::request::api_versions::LATEST;
 
     cartesiapp::Cartesia client(apiKey, apiVersion);

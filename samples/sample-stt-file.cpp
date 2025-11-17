@@ -9,13 +9,13 @@
  * @brief Test Speech-to-Text functionality with a local audio file.
  */
 bool testTTSWithStreaming(cartesiapp::Cartesia& client) {
-    cartesiapp::request::STTBatchRequest sttRequest;
+    cartesiapp::request::stt::BatchRequest sttRequest;
     // you can omit optional parameters to use defaults from the actual file's header
     //sttRequest.language = "en";
     //sttRequest.sample_rate = 16000;
     //sttRequest.encoding = cartesiapp::request::stt_encoding::PCM_S16LE;
 
-    cartesiapp::response::stt::BatchResponse response = client.sttWithFile(
+    cartesiapp::response::stt::TranscriptionResponse response = client.sttWithFile(
         "../data/tts_output.mp3",
          sttRequest
     );
@@ -24,7 +24,7 @@ bool testTTSWithStreaming(cartesiapp::Cartesia& client) {
     spdlog::info("Type: {}", response.type);
     spdlog::info("Request ID: {}", response.request_id);
     spdlog::info("Transcribed Text: {}", response.text);
-    spdlog::info("Language: {}", response.language);
+    spdlog::info("Language: {}", response.language.has_value() ? response.language.value() : "N/A");
     spdlog::info("Duration: {} seconds", response.duration);
     spdlog::info("Is Final: {}", response.is_final);
 
@@ -44,7 +44,8 @@ int main(int ac, char** av) {
     spdlog::set_level(spdlog::level::info);
 #endif
 
-    std::string apiKey = std::getenv("CARTESIA_API_KEY");
+    const char* apiKeyEnv = std::getenv("CARTESIA_API_KEY");
+    std::string apiKey = apiKeyEnv ? apiKeyEnv : "";
     std::string apiVersion = cartesiapp::request::api_versions::LATEST;
 
     cartesiapp::Cartesia client(apiKey, apiVersion);

@@ -51,29 +51,62 @@ namespace cartesiapp::response {
      */
     namespace stt {
         /**
-         * Struct to hold STT batch response information
+         * Struct to hold word timing information for STT
          */
-        struct CARTESIAPP_EXPORT BatchResponse {
+        struct CARTESIAPP_EXPORT WordTiming {
+            std::string word;
+            float start;
+            float end;
+
+            static WordTiming fromJson(const std::string& jsonStr);
+        };
+
+        /**
+         * Struct to hold STT response information
+         */
+        struct CARTESIAPP_EXPORT TranscriptionResponse {
             std::string type;
             std::string text;
-            std::string language;
+            std::optional<std::string> language;
             float duration;
             std::string request_id;
             bool is_final;
 
-            /**
-             * Struct to hold word timing information for STT
-             */
-            struct WordTiming {
-                std::string word;
-                float start;
-                float end;
 
-                static WordTiming fromJson(const std::string& jsonStr);
-            };
             std::vector<WordTiming> words;
 
-            static BatchResponse fromJson(const std::string& jsonStr);
+            static TranscriptionResponse fromJson(const std::string& jsonStr);
+        };
+
+        /**
+         * Struct to hold flush done response information
+         */
+        struct CARTESIAPP_EXPORT FlushDoneResponse {
+            std::string type;
+            std::string request_id;
+
+            static FlushDoneResponse fromJson(const std::string& jsonStr);
+        };
+
+        /**
+         * Struct to hold done response information
+         */
+        struct CARTESIAPP_EXPORT DoneResponse {
+            std::string type;
+            std::string request_id;
+
+            static DoneResponse fromJson(const std::string& jsonStr);
+        };
+
+        /**
+         * Struct to hold error response information
+         */
+        struct CARTESIAPP_EXPORT ErrorResponse {
+            std::string type;
+            std::string request_id;
+            std::string error;
+
+            static ErrorResponse fromJson(const std::string& jsonStr);
         };
     }
 
@@ -168,7 +201,7 @@ namespace cartesiapp::response {
             PhonemeTimestamps phoneme_timestamps;
 
             static PhonemeTimestampsResponse fromJson(const std::string& jsonStr);
-        };        
+        };
 
         /**
          * Struct to hold error response information

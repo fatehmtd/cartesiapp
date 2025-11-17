@@ -10,7 +10,7 @@ include(FetchContent)
 include(GNUInstallDirs)
 
 # add Boost
-find_package(Boost REQUIRED COMPONENTS system thread)
+find_package(Boost REQUIRED COMPONENTS)
 
 if(NOT Boost_FOUND)
     message(FATAL_ERROR "Boost not found. Please install Boost or set BOOST_ROOT.")
@@ -51,7 +51,9 @@ add_library(cartesiapp STATIC
     src/cartesiapp.cpp
     src/cartesiapp_request.cpp
     src/cartesiapp_response.cpp
+    src/streaming_stt.cpp
     include/cartesiapp.hpp
+    include/streaming_stt.hpp
 )
 
 target_include_directories(cartesiapp PRIVATE
@@ -60,7 +62,7 @@ target_include_directories(cartesiapp PRIVATE
 
 target_link_libraries(cartesiapp
     PRIVATE
-    spdlog::spdlog
+    spdlog::spdlog_header_only
     nlohmann_json::nlohmann_json
     ${OPENSSL_LIBRARIES}
     base64

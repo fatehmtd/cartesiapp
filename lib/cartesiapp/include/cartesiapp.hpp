@@ -15,8 +15,23 @@ namespace cartesiapp {
     // Forward declaration of TTSResponseListener class
     class TTSResponseListener;
 
+    // Forward declaration of STTResponseListener class
+    class STTResponseListener;
+
     // Forward declaration of implementation class
     class CartesiaClientImpl;
+
+    // Forward declaration of STTWebsocketClient implementation class
+    class WebsocketClientImpl;
+
+    namespace tts_events {
+        constexpr const char* AUDIO_CHUNK = "chunk";
+        constexpr const char* DONE = "done";
+        constexpr const char* WORD_TIMESTAMPS = "timestamps";
+        constexpr const char* PHONEME_TIMESTAMPS = "phoneme_timestamps";
+        constexpr const char* FLUSH_DONE = "flush_done";
+        constexpr const char* ERROR_ = "error";
+    }
 
     /**
      * Main class for interacting with the Cartesia API
@@ -32,6 +47,12 @@ namespace cartesiapp {
          * @param apiVersion The API version to use.
          */
         void overrideApiVersion(const std::string& apiVersion);
+
+        /**
+         * @brief Retrieves the current API key being used.
+         * @return The API key string.
+         */
+        std::string getApiKey() const;
 
         /**
          * @brief Retrieves the current API version being used.
@@ -66,32 +87,54 @@ namespace cartesiapp {
         /**
          * @brief Performs a Speech-to-Text batch transcription using an audio file.
          * @param filePath The path to the audio file to transcribe.
-         * @param request The STTBatchRequest containing transcription parameters.
-         * @return A BatchResponse containing the transcription result.
+         * @param request The BatchRequest containing transcription parameters.
+         * @return A TranscriptionResponse containing the transcription result.
          */
-        response::stt::BatchResponse sttWithFile(const std::string& filePath,
-            const request::STTBatchRequest& request) const;
+        response::stt::TranscriptionResponse sttWithFile(const std::string& filePath,
+            const request::stt::BatchRequest& request) const;
 
         /**
          * @brief Performs a Speech-to-Text batch transcription using raw audio bytes.
          * @param audioBytes The raw audio bytes to transcribe.
-         * @param request The STTBatchRequest containing transcription parameters.
-         * @return A BatchResponse containing the transcription result.
+         * @param request The BatchRequest containing transcription parameters.
+         * @return A TranscriptionResponse containing the transcription result.
          */
-        response::stt::BatchResponse sttWithBytes(const std::vector<char>& audioBytes,
-            const request::STTBatchRequest& request) const;
+        response::stt::TranscriptionResponse sttWithBytes(const std::vector<char>& audioBytes,
+            const request::stt::BatchRequest& request) const;
+
+        /**
+         * @brief Starts the STT WebSocket connection.
+         * @return True if the connection was started successfully, false otherwise.
+         */
+        bool startSTTWebsocketConnection() const;
+
+        /**
+         * @brief Stops the STT WebSocket connection.
+         * @return True if the connection was stopped successfully, false otherwise.
+         */
+        bool stopSTTWebsocketConnection() const;
+
+        /**
+         * @brief Registers an STT response listener.
+         * @param listener A weak pointer to the STTResponseListener to register.
+         */
+        void registerSTTListener(std::weak_ptr<STTResponseListener> listener);
+
+        /**
+         * @brief Unregisters the STT response listener.
+         */
+        void unregisterSTTListener();
 
         /**
          * @brief Registers a TTS response listener.
          * @param listener A weak pointer to the TTSResponseListener to register.
          */
-        void registerListener(std::weak_ptr<TTSResponseListener> listener);
+        void registerTTSListener(std::weak_ptr<TTSResponseListener> listener);
 
         /**
          * @brief Unregisters the TTS response listener.
          */
-        void unregisterListener();
-
+        void unregisterTTSListener();
         /**
          * @brief Starts the TTS WebSocket connection.
          * @return True if the connection was started successfully, false otherwise.
@@ -106,19 +149,21 @@ namespace cartesiapp {
 
         /**
          * @brief Initiates a Text-to-Speech generation request via streaming.
-         * @param request The TTSGenerationRequest containing generation parameters.
+         * @param request The GenerationRequest containing generation parameters.
          */
-        bool requestTTS(const request::TTSGenerationRequest& request) const;
+        bool requestTTS(const request::tts::GenerationRequest& request) const;
 
         /**
          * @brief Cancels an ongoing TTS context/session.
          * @param request The TTSCancelContextRequest containing the context ID to cancel.
          */
-        bool cancelTTSContext(const request::TTSCancelContextRequest& request) const;
+        bool cancelTTSContext(const request::tts::CancelContextRequest& request) const;
 
         private:
         std::unique_ptr<CartesiaClientImpl> _clientImpl;
-        std::weak_ptr<TTSResponseListener> _listener;
+        std::weak_ptr<TTSResponseListener> _ttsListener;
+        std::weak_ptr<STTResponseListener> _sttListener;
+        std::string _apiKey;
     };
 
     /**
@@ -181,6 +226,7 @@ namespace cartesiapp {
          */
         virtual void onError(const response::tts::ErrorResponse& response) = 0;
     };
+
 }
 
 #endif // CARTESIA_APP_HPP
