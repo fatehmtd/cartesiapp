@@ -70,7 +70,8 @@ class STTResponseListener :
 /**
  * @brief Test Speech-to-Text functionality with a local audio file.
  */
-bool testTTSWithStreaming(cartesiapp::Cartesia& client, const std::string& audioFilePath = "../data/tts_output.wav") {
+bool testTTSWithStreaming(cartesiapp::Cartesia& client,
+    const std::string& audioFilePath) {
 
     auto apiInfo = client.getApiInfo();
 
@@ -117,11 +118,11 @@ bool testTTSWithStreaming(cartesiapp::Cartesia& client, const std::string& audio
         {
             spdlog::info("Starting to send audio data...");
             // Stream audio data in chunks
-            const size_t chunkSize = 32000; // 100ms of audio at 16kHz, 16-bit mono
+            const size_t chunkSize = 3200; // 100ms of audio at 16kHz, 16-bit mono
             size_t offset = 0;
             while (offset < buffer.size()) {
                 size_t bytesToSend = std::min(chunkSize, buffer.size() - offset);
-                if(!sttClient.writeAudioBytes(buffer.data() + offset, bytesToSend)) {
+                if (!sttClient.writeAudioBytes(buffer.data() + offset, bytesToSend)) {
                     spdlog::error("Failed to send audio bytes.");
                     return;
                 }
@@ -162,8 +163,8 @@ int main(int ac, char** av) {
     cartesiapp::response::ApiInfo apiInfo = client.getApiInfo();
     spdlog::info("API Version: {}, Status OK: {}", apiInfo.version, apiInfo.ok);
 
-    // uncomment to test STT with file
-    if (!testTTSWithStreaming(client)) {
+    std::string audioFilePath = "../data/sample_audio.wav";
+    if (!testTTSWithStreaming(client, audioFilePath)) {
         return -1;
     }
 

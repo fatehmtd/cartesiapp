@@ -4,53 +4,20 @@
 #include "cartesiapp.hpp"
 
 namespace cartesiapp {
+    // Forward declaration of WebsocketClient implementation class
+    class WebsocketClientImpl;
+    
+    // Forward declaration of STTResponseListener interface
+    class STTResponseListener;
+
     /**
-     * @brief Interface for receiving Speech-to-Text response callbacks.
+     * @brief Namespace for Speech-to-Text related events
      */
-    class CARTESIAPP_EXPORT STTResponseListener {
-        public:
-        virtual ~STTResponseListener() = default;
-
-        /**
-         * @brief Callback method invoked when the WebSocket connection is established.
-         */
-        virtual void onConnected() = 0;
-
-        /**
-         * @brief Callback method invoked when the WebSocket connection is disconnected.
-         * @param reason The reason for the disconnection.
-         */
-        virtual void onDisconnected(const std::string& reason) = 0;
-
-        /**
-         * @brief Callback method invoked when a network error occurs.
-         * @param errorMessage The error message describing the network error.
-         */
-        virtual void onNetworkError(const std::string& errorMessage) = 0;
-
-        /**
-         * @brief Callback method invoked when a transcription response is received.
-         * @param response The TranscriptionResponse received from the STT service.
-         */
-        virtual void onTranscriptionReceived(const response::stt::TranscriptionResponse& response) = 0;
-
-        /**
-         * @brief Callback method invoked when a done response is received.
-         * @param response The DoneResponse received from the STT service.
-         */
-        virtual void onDoneReceived(const response::stt::DoneResponse& response) = 0;
-
-        /**
-         * @brief Callback method invoked when a flush done response is received.
-         * @param response The FlushDoneResponse received from the STT service.
-         */
-        virtual void onFlushDoneReceived(const response::stt::FlushDoneResponse& response) = 0;
-
-        /**
-         * @brief Callback method invoked when an error response is received.
-         * @param response The ErrorResponse received from the STT service.
-         */
-        virtual void onError(const response::stt::ErrorResponse& response) = 0;
+    namespace stt_events {
+        constexpr const char* TRANSCRIPTION = "transcript";
+        constexpr const char* DONE = "done";
+        constexpr const char* FLUSH_DONE = "flush_done";
+        constexpr const char* ERROR_ = "error";
     };
 
     /**
@@ -120,6 +87,56 @@ namespace cartesiapp {
         float _minVolume;
         std::string _apiVersion;
         std::string _apiKey;
+    };
+
+
+    /**
+     * @brief Interface for receiving Speech-to-Text response callbacks.
+     */
+    class CARTESIAPP_EXPORT STTResponseListener {
+        public:
+        virtual ~STTResponseListener() = default;
+
+        /**
+         * @brief Callback method invoked when the WebSocket connection is established.
+         */
+        virtual void onConnected() = 0;
+
+        /**
+         * @brief Callback method invoked when the WebSocket connection is disconnected.
+         * @param reason The reason for the disconnection.
+         */
+        virtual void onDisconnected(const std::string& reason) = 0;
+
+        /**
+         * @brief Callback method invoked when a network error occurs.
+         * @param errorMessage The error message describing the network error.
+         */
+        virtual void onNetworkError(const std::string& errorMessage) = 0;
+
+        /**
+         * @brief Callback method invoked when a transcription response is received.
+         * @param response The TranscriptionResponse received from the STT service.
+         */
+        virtual void onTranscriptionReceived(const response::stt::TranscriptionResponse& response) = 0;
+
+        /**
+         * @brief Callback method invoked when a done response is received.
+         * @param response The DoneResponse received from the STT service.
+         */
+        virtual void onDoneReceived(const response::stt::DoneResponse& response) = 0;
+
+        /**
+         * @brief Callback method invoked when a flush done response is received.
+         * @param response The FlushDoneResponse received from the STT service.
+         */
+        virtual void onFlushDoneReceived(const response::stt::FlushDoneResponse& response) = 0;
+
+        /**
+         * @brief Callback method invoked when an error response is received.
+         * @param response The ErrorResponse received from the STT service.
+         */
+        virtual void onError(const response::stt::ErrorResponse& response) = 0;
     };
 }
 

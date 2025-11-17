@@ -37,28 +37,28 @@ bool cartesiapp::STTWebsocketClient::connectAndStart()
     auto dataReadCallback = [this](const std::string& data) {
         nlohmann::json jsonData = nlohmann::json::parse(data, nullptr, false);
         std::string responseType = jsonData.value("type", "");
-        if (responseType == "transcript") {
+        if (responseType == stt_events::TRANSCRIPTION) {
             response::stt::TranscriptionResponse transcriptionResponse = response::stt::TranscriptionResponse::fromJson(data);
             if (auto listener = _sttListener.lock())
             {
                 listener->onTranscriptionReceived(transcriptionResponse);
             }
         }
-        else if (responseType == "done") {
+        else if (responseType == stt_events::DONE) {
             response::stt::DoneResponse doneResponse = response::stt::DoneResponse::fromJson(data);
             if (auto listener = _sttListener.lock())
             {
                 listener->onDoneReceived(doneResponse);
             }
         }
-        else if (responseType == "flush_done") {
+        else if (responseType == stt_events::FLUSH_DONE) {
             response::stt::FlushDoneResponse flushDoneResponse = response::stt::FlushDoneResponse::fromJson(data);
             if (auto listener = _sttListener.lock())
             {
                 listener->onFlushDoneReceived(flushDoneResponse);
             }
         }
-        else if (responseType == "error") {
+        else if (responseType == stt_events::ERROR_) {
             response::stt::ErrorResponse errorResponse = response::stt::ErrorResponse::fromJson(data);
             if (auto listener = _sttListener.lock())
             {
