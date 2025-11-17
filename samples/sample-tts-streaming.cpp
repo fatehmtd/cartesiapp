@@ -1,3 +1,14 @@
+/**
+ * @file sample-tts-streaming.cpp
+ * @brief Sample demonstrating real-time Text-to-Speech streaming
+ * 
+ * This sample shows how to:
+ * - Use WebSocket for real-time TTS streaming
+ * - Implement custom response listeners
+ * - Handle audio chunks and performance metrics
+ * - Manage streaming contexts
+ */
+
 #include <streaming_tts.hpp>
 #include <cstdlib>
 #include <iostream>
@@ -6,12 +17,16 @@
 #include <chrono>
 #include <atomic>
 
+// Generate a simple context ID for TTS streaming
 std::string generateSimpleID() {
     auto now = std::chrono::high_resolution_clock::now();
     auto timestamp = std::chrono::duration_cast<std::chrono::microseconds>(now.time_since_epoch()).count();
     return "context-id-" + std::to_string(timestamp);
 }
 
+/**
+ * @brief Custom TTS response listener that saves audio to file and tracks performance
+ */
 class TTSResponseListener : public cartesiapp::TTSResponseListener {
     private:
     std::atomic_bool _stopFlag;
@@ -165,7 +180,7 @@ int main(int ac, char** av) {
     cartesiapp::response::ApiInfo apiInfo = client.getApiInfo();
     spdlog::info("API Version: {}, Status OK: {}", apiInfo.version, apiInfo.ok);
 
-    // uncomment to test TTS with streaming
+    // Test TTS streaming
     if (!testTTSWithStreaming(client)) {
         return -1;
     }

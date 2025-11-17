@@ -1,0 +1,75 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+env:
+  # Customize the CMake build type here (Release, Debug, RelWithDebInfo, etc.)
+  BUILD_TYPE: Release
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        os: [windows-latest, ubuntu-latest, macos-latest]
+        
+    runs-on: ${{ matrix.os }}
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup vcpkg (Windows)
+      if: matrix.os == 'windows-latest'
+      run: |
+        git clone https://github.com/Microsoft/vcpkg.git
+        .\vcpkg\bootstrap-vcpkg.bat
+        .\vcpkg\vcpkg.exe integrate install
+
+    - name: Setup vcpkg (Unix)
+      if: matrix.os != 'windows-latest'
+      run: |
+        git clone https://github.com/Microsoft/vcpkg.git
+        ./vcpkg/bootstrap-vcpkg.sh
+        sudo ./vcpkg/vcpkg integrate install
+
+    - name: Install dependencies (Windows)
+      if: matrix.os == 'windows-latest'
+      run: |
+        .\vcpkg\vcpkg.exe install boost-beast spdlog nlohmann-json openssl
+
+    - name: Install dependencies (Unix)
+      if: matrix.os != 'windows-latest'
+      run: |
+        ./vcpkg/vcpkg install boost-beast spdlog nlohmann-json openssl
+
+    - name: Configure CMake (Windows)
+      if: matrix.os == 'windows-latest'
+      run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DCMAKE_TOOLCHAIN_FILE=${{github.workspace}}/vcpkg/scripts/buildsystems/vcpkg.cmake
+
+    - name: Configure CMake (Unix)
+      if: matrix.os != 'windows-latest'
+      run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DCMAKE_TOOLCHAIN_FILE=${{github.workspace}}/vcpkg/scripts/buildsystems/vcpkg.cmake
+
+    - name: Build
+      run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}}
+
+    - name: Upload build artifacts (Windows)
+      if: matrix.os == 'windows-latest'
+      uses: actions/upload-artifact@v4
+      with:
+        name: cartesiapp-windows
+        path: |
+          build/samples/${{env.BUILD_TYPE}}/*.exe
+          build/lib/cartesiapp/${{env.BUILD_TYPE}}/cartesiapp.lib
+
+    - name: Upload build artifacts (Unix)
+      if: matrix.os != 'windows-latest'
+      uses: actions/upload-artifact@v4
+      with:
+        name: cartesiapp-${{ matrix.os }}
+        path: |
+          build/samples/CartesiaPP_Sample_*
+          build/lib/cartesiapp/libcartesiapp.a

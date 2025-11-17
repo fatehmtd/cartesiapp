@@ -1,10 +1,23 @@
+/**
+ * @file sample-stt-streaming.cpp
+ * @brief Sample demonstrating real-time Speech-to-Text streaming
+ * 
+ * This sample shows how to:
+ * - Use WebSocket for real-time STT streaming
+ * - Process audio files in chunks
+ * - Handle partial and final transcription results
+ * - Implement custom STT response listeners
+ */
+
 #include <streaming_stt.hpp>
 #include <cstdlib>
 #include <iostream>
 #include <spdlog/spdlog.h>
 #include <fstream>
-#include <fstream>
 
+/**
+ * @brief Custom STT response listener that handles transcription events
+ */
 class STTResponseListener :
     public cartesiapp::STTResponseListener,
     public std::enable_shared_from_this<STTResponseListener> {
@@ -68,9 +81,9 @@ class STTResponseListener :
 
 
 /**
- * @brief Test Speech-to-Text functionality with a local audio file.
+ * @brief Demonstrates STT streaming by processing an audio file in chunks
  */
-bool testTTSWithStreaming(cartesiapp::Cartesia& client,
+bool testSTTWithStreaming(cartesiapp::Cartesia& client,
     const std::string& audioFilePath) {
 
     auto apiInfo = client.getApiInfo();
@@ -164,7 +177,7 @@ int main(int ac, char** av) {
     spdlog::info("API Version: {}, Status OK: {}", apiInfo.version, apiInfo.ok);
 
     std::string audioFilePath = "../data/sample_audio.wav";
-    if (!testTTSWithStreaming(client, audioFilePath)) {
+    if (!testSTTWithStreaming(client, audioFilePath)) {
         return -1;
     }
 

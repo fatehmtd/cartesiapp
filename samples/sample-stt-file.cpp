@@ -1,14 +1,23 @@
+/**
+ * @file sample-stt-file.cpp
+ * @brief Sample demonstrating Speech-to-Text batch transcription from files
+ * 
+ * This sample shows how to:
+ * - Transcribe audio files using batch STT
+ * - Extract word-level timestamps
+ * - Handle various audio formats (MP3, WAV, etc.)
+ */
+
 #include <cartesiapp.hpp>
 #include <cstdlib>
 #include <iostream>
 #include <spdlog/spdlog.h>
 #include <fstream>
 
-
 /**
- * @brief Test Speech-to-Text functionality with a local audio file.
+ * @brief Demonstrates STT batch transcription from an audio file
  */
-bool testTTSWithStreaming(cartesiapp::Cartesia& client) {
+bool testSTTWithFile(cartesiapp::Cartesia& client) {
     cartesiapp::request::stt::BatchRequest sttRequest;
     // you can omit optional parameters to use defaults from the actual file's header
     //sttRequest.language = "en";
@@ -54,8 +63,8 @@ int main(int ac, char** av) {
     cartesiapp::response::ApiInfo apiInfo = client.getApiInfo();
     spdlog::info("API Version: {}, Status OK: {}", apiInfo.version, apiInfo.ok);
 
-    // uncomment to test STT with file
-    if (!testTTSWithStreaming(client)) {
+    // Test STT with file
+    if (!testSTTWithFile(client)) {
         return -1;
     }
 

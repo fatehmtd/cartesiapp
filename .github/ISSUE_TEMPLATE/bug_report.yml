@@ -1,0 +1,102 @@
+name: Bug Report
+description: Report a bug or issue with CartesiaPP
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report a bug! Please fill out the information below to help us investigate.
+
+  - type: input
+    id: version
+    attributes:
+      label: CartesiaPP Version
+      description: What version of CartesiaPP are you using?
+      placeholder: e.g., v0.1.0
+    validations:
+      required: true
+
+  - type: input
+    id: cartesia-api-version
+    attributes:
+      label: Cartesia API Version
+      description: Which Cartesia API version are you using?
+      placeholder: e.g., 2025-04-16
+    validations:
+      required: true
+
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating System
+      description: What operating system are you using?
+      options:
+        - Windows
+        - macOS
+        - Linux
+        - Other
+    validations:
+      required: true
+
+  - type: input
+    id: compiler
+    attributes:
+      label: Compiler
+      description: What compiler and version are you using?
+      placeholder: e.g., MSVC 2022, GCC 11.2, Clang 14
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Bug Description
+      description: A clear and concise description of the bug
+      placeholder: Describe what happened
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected Behavior
+      description: What did you expect to happen?
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to Reproduce
+      description: Steps to reproduce the bug
+      placeholder: |
+        1. Create a TTS request with...
+        2. Call client.ttsBytes()...
+        3. See error...
+    validations:
+      required: true
+
+  - type: textarea
+    id: code
+    attributes:
+      label: Code Sample
+      description: Minimal code sample that reproduces the issue
+      render: cpp
+      placeholder: |
+        #include <cartesiapp.hpp>
+        
+        int main() {
+            // Your code here
+        }
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Log Output
+      description: Relevant log output or error messages
+      render: text
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional Context
+      description: Any other context about the problem

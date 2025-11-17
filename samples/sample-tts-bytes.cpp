@@ -1,3 +1,13 @@
+/**
+ * @file sample-tts-bytes.cpp
+ * @brief Sample demonstrating Text-to-Speech byte synthesis
+ * 
+ * This sample shows how to:
+ * - List and filter available voices
+ * - Configure TTS request with emotions and output formats
+ * - Generate audio as bytes and save to file
+ */
+
 #include <cartesiapp.hpp>
 #include <cstdlib>
 #include <iostream>
@@ -6,7 +16,7 @@
 #include <filesystem>
 
 /**
- * @brief Test Text-to-Speech byte synthesis functionality.
+ * @brief Demonstrates TTS byte synthesis with voice selection and audio generation
  */
 bool testBytesTTS(cartesiapp::Cartesia& client) {
     try {
@@ -84,7 +94,7 @@ int main(int ac, char** av) {
     cartesiapp::response::ApiInfo apiInfo = client.getApiInfo();
     spdlog::info("API Version: {}, Status OK: {}", apiInfo.version, apiInfo.ok);
 
-    // Uncommnent to test TTS Bytes
+    // Test TTS byte synthesis
     if (!testBytesTTS(client)) {
         return -1;
     }
