@@ -48,191 +48,10 @@ namespace cartesiapp {
             _apiVersion(apiVersion),
             _resolver(_ioContext),
             _sslContext(ssl::context::tlsv12_client),
-            _websocket(_ioContext, _sslContext),
             _verifyCertificates(verifyCertificates) {
         }
 
         ~CartesiaClientImpl() {
-            disconnectWebsocket();
-        }
-
-        bool sendWebsocketData(const std::string& data) {
-            if (!_websocket.is_open()) {
-                spdlog::error("sendWebsocketData: WebSocket is not connected.");
-                return false;
-            }
-            beast::error_code ec;
-            _websocket.text(true);
-            _websocket.write(net::buffer(data), ec);
-            if (ec) {
-                spdlog::error("sendWebsocketData: Error sending data over WebSocket: {}, {}, {}", ec.message(), ec.value(), ec.category().name());
-                return false;
-            }
-            return true;
-        }
-
-        bool connectWebsocketAndStartThread(const std::function<void(const std::string&)>& dataReadCallback,
-            const std::function<void()>& onConnectedCallback,
-            const std::function<void(const std::string& message)>& onDisconnectedCallback,
-            const std::function<void(const std::string& errorMessage)>& onErrorCallback) {
-
-            if (!connectWebsocket(_verifyCertificates)) {
-                return false;
-            }
-            else {
-                if (onConnectedCallback) {
-                    onConnectedCallback();
-                }
-            }
-
-            _ttsWorkerThread = std::thread([this,
-                dataReadCallback,
-                onDisconnectedCallback,
-                onErrorCallback]()
-                {
-                    beast::flat_buffer buffer;
-                    beast::error_code ec;
-                    _ttsShouldStopFlag.store(false);
-                    try {
-                        while (!_ttsShouldStopFlag.load())
-                        {
-                            size_t bytesRead = 0;
-                            // check if websocket is still open and we should continue
-                            {
-                                std::scoped_lock lock(_ttsWebsocketMutex);
-                                if (!_websocket.is_open() || _ttsShouldStopFlag.load()) {
-                                    spdlog::warn("WebSocket is no longer open or stop requested, stopping data reception thread.");
-                                    break;
-                                }
-                            }
-
-                            // read data from websocket                    
-                            try {
-                                bytesRead = _websocket.read(buffer, ec);
-                            }
-                            catch (const std::exception& read_ex) {
-                                spdlog::warn("Exception during WebSocket read: {}", read_ex.what());
-                                ec = beast::error_code(net::error::operation_aborted, net::error::get_system_category());
-                            }
-
-                            if (ec || _ttsShouldStopFlag.load())
-                            {
-                                // Check for expected disconnection scenarios
-                                if (ec == beast::websocket::error::closed ||
-                                    ec == net::error::eof ||
-                                    ec == net::error::operation_aborted ||
-                                    ec == net::error::connection_aborted ||
-                                    ec == net::error::connection_reset)
-                                {
-                                    if (!_ttsShouldStopFlag.load()) {
-                                        spdlog::warn("WebSocket closed by server or network error: {}", ec.message());
-                                        if (onDisconnectedCallback)
-                                        {
-                                            onDisconnectedCallback(ec.message());
-                                        }
-                                    }
-                                }
-                                else if (!_ttsShouldStopFlag.load())
-                                {
-                                    spdlog::error("Error reading from WebSocket: {}, {}, {}", ec.message(), ec.value(), ec.category().name());
-                                    if (onErrorCallback)
-                                    {
-                                        onErrorCallback(ec.message());
-                                    }
-                                    if (onDisconnectedCallback)
-                                    {
-                                        onDisconnectedCallback(ec.message());
-                                    }
-                                }
-                                break;
-                            }
-
-                            // Only process data if we successfully read and haven't been asked to stop
-                            if (!ec && !_ttsShouldStopFlag.load() && bytesRead > 0) {
-                                std::string data(beast::buffers_to_string(buffer.data()));
-                                buffer.consume(bytesRead);
-                                dataReadCallback(data);
-                            }
-                        }
-                    }
-                    catch (std::exception& e)
-                    {
-                        if (!_ttsShouldStopFlag.load()) {
-                            spdlog::error("Error in data reception thread: {}", e.what());
-                            if (onErrorCallback) {
-                                onErrorCallback(e.what());
-                            }
-                            if (onDisconnectedCallback) {
-                                onDisconnectedCallback(e.what());
-                            }
-                        }
-                        else {
-                            spdlog::info("Exception during shutdown (expected): {}", e.what());
-                        }
-                    }
-                });
-            return true;
-        }
-
-        bool disconnectWebsocket() {
-            // check if websocket is already disconnected
-            {
-                std::scoped_lock lock(_ttsWebsocketMutex);
-                if (!_websocket.is_open() || _ttsShouldStopFlag.load()) {
-                    spdlog::warn("disconnectWebsocket: WebSocket is already disconnected.");
-                    return false;
-                }
-            }
-
-            // mark to stop the worker thread
-            _ttsShouldStopFlag.store(true);
-
-            // First, forcefully shutdown the underlying TCP socket to unblock any pending reads
-            {
-                try {
-                    beast::error_code ec;
-                    std::scoped_lock lock(_ttsWebsocketMutex);
-                    // Shutdown the underlying TCP socket to interrupt any blocking read operations
-                    beast::get_lowest_layer(_websocket).close(ec);
-                    if (ec) {
-                        spdlog::warn("disconnectWebsocket: Error closing underlying socket: {}", ec.message());
-                    }
-                }
-                catch (const std::exception& ex) {
-                    spdlog::error("disconnectWebsocket: Exception while closing underlying socket: {}", ex.what());
-                }
-            }
-
-            // join the worker thread first (it should exit quickly now that socket is closed)
-            {
-                try {
-                    if (_ttsWorkerThread.joinable()) {
-                        _ttsWorkerThread.join();
-                    }
-                }
-                catch (const std::exception& ex) {
-                    spdlog::error("disconnectWebsocket: Error joining worker thread: {}", ex.what());
-                }
-            }
-
-            // Now attempt graceful WebSocket close (though connection may already be broken)
-            {
-                try {
-                    beast::error_code ec;
-                    std::scoped_lock lock(_ttsWebsocketMutex);
-                    if (_websocket.is_open()) {
-                        _websocket.close(beast::websocket::close_code::normal, ec);
-                        if (ec && ec != beast::websocket::error::closed && ec != net::error::eof) {
-                            spdlog::warn("disconnectWebsocket: Error closing WebSocket gracefully: {}", ec.message());
-                        }
-                    }
-                }
-                catch (const std::exception& ex) {
-                    spdlog::error("disconnectWebsocket: Exception while closing WebSocket: {}", ex.what());
-                }
-            }
-
-            return true;
         }
 
         void overrideApiVersion(const std::string& apiVersion) {
@@ -241,10 +60,6 @@ namespace cartesiapp {
 
         std::string getApiVersion() const {
             return _apiVersion;
-        }
-
-        bool isWebsocketConnected() const {
-            return _websocket.is_open();
         }
 
         response::ApiInfo getApiInfo() const {
@@ -579,71 +394,15 @@ namespace cartesiapp {
             return std::move(sslStream);
         }
 
-        bool connectWebsocket(bool verifyCertificates)
-        {
-            try
-            {
-                std::scoped_lock lock(_ttsWebsocketMutex);
-                auto const results = _resolver.resolve(cartesiapp::request::constants::HOST, "443");
-                net::connect(_websocket.next_layer().lowest_layer(), results.begin(), results.end());
-                spdlog::info("Performing SSL handshake...");
-
-                _websocket.next_layer().set_verify_callback([verifyCertificates](bool preverified, ssl::verify_context& ctx) {
-                    // Log certificate info for debugging
-                    X509_STORE_CTX* store_ctx = ctx.native_handle();
-                    X509* cert = X509_STORE_CTX_get_current_cert(store_ctx);
-                    if (cert) {
-                        char subject_name[256];
-                        X509_NAME_oneline(X509_get_subject_name(cert), subject_name, 256);
-                        spdlog::debug("Certificate subject: {}", subject_name);
-                    }
-
-                    if (!preverified) {
-                        int error = X509_STORE_CTX_get_error(store_ctx);
-                        spdlog::error("Certificate verification failed: {}, verification {}", X509_verify_cert_error_string(error), verifyCertificates ? "enabled" : "disabled");
-                        return !verifyCertificates; // Reject invalid certificates if verification is enabled
-                    }
-                    return true;
-                    });
-                // Set SNI hostname for websocket
-                if (!SSL_set_tlsext_host_name(_websocket.next_layer().native_handle(), cartesiapp::request::constants::HOST)) {
-                    beast::error_code ec{ static_cast<int>(::ERR_get_error()), net::error::get_ssl_category() };
-                    throw beast::system_error{ ec };
-                }
-                // Set WebSocket handshake headers including api key and version
-                _websocket.set_option(beast::websocket::stream_base::decorator(
-                    [this](beast::websocket::request_type& req) {
-                        req.set(http::field::user_agent, cartesiapp::request::constants::USER_AGENT);
-                        req.set(cartesiapp::request::constants::HEADER_CARTESIA_VERSION, _apiVersion);
-                        req.set("X-API-Key", _apiKey);
-                    }));
-                _websocket.next_layer().set_verify_mode(ssl::verify_peer);
-                _websocket.next_layer().handshake(ssl::stream_base::handshake_type::client);
-                _websocket.handshake(cartesiapp::request::constants::HOST, cartesiapp::request::constants::ENDPOINT_TTS_WEBSOCKET);
-                spdlog::info("WebSocket connected successfully!");
-            }
-            catch (std::exception& e)
-            {
-                spdlog::error("Error occurred: {}", e.what());
-                return false;
-            }
-            return true;
-        }
-
         private:
         std::string _apiKey;
         std::string _apiVersion;
         bool _verifyCertificates;
-        bool _keepWebsocketRunning = false;
-        std::thread _ttsWorkerThread;
-        std::atomic_bool _ttsShouldStopFlag = false;
-        std::mutex _ttsWebsocketMutex;
 
         // Boost.Asio components, mutable to allow modification in const methods that are exposed to users
         mutable ssl::context _sslContext;
         mutable net::io_context _ioContext;
         mutable tcp::resolver _resolver;
-        mutable Websocket _websocket;
     };
 
     /**

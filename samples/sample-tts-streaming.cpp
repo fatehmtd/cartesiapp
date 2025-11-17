@@ -1,4 +1,4 @@
-#include <cartesiapp.hpp>
+#include <streaming_tts.hpp>
 #include <cstdlib>
 #include <iostream>
 #include <spdlog/spdlog.h>
@@ -34,14 +34,16 @@ class TTSResponseListener : public cartesiapp::TTSResponseListener {
 
     void onDisconnected(const std::string& reason) override {
         spdlog::info("Listener: WebSocket disconnected. Reason: {}", reason);
+        _stopFlag.store(true);
     }
 
     void onNetworkError(const std::string& errorMessage) override {
         spdlog::error("Listener: Network error: {}", errorMessage);
+        _stopFlag.store(true);
     }
 
     void onAudioChunkReceived(const cartesiapp::response::tts::AudioChunkResponse& response) override {
-        if(!_firstByteReceived) {
+        if (!_firstByteReceived) {
             _firstByteReceived = true;
             _firstByteTimestamp = std::chrono::high_resolution_clock::now();
         }
@@ -62,7 +64,7 @@ class TTSResponseListener : public cartesiapp::TTSResponseListener {
         auto durationToFirstByte = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - firstByteTimestamp()).count();
         spdlog::info("total audio duration: {} ms", durationToFirstByte);
 
-        _stopFlag.store(true);
+        //_stopFlag.store(true);
         _audioOutputFile.close();
     }
 
@@ -97,14 +99,6 @@ class TTSResponseListener : public cartesiapp::TTSResponseListener {
  */
 bool testTTSWithStreaming(cartesiapp::Cartesia& client) {
 
-    std::shared_ptr<TTSResponseListener> listener = std::make_shared<TTSResponseListener>();
-    client.registerTTSListener(listener);
-
-    if (!client.startTTSWebsocketConnection()) {
-        spdlog::error("Failed to start TTS WebSocket connection.");
-        return false;
-    }
-
     cartesiapp::request::VoiceListRequest voiceListRequest;
     voiceListRequest.gender = cartesiapp::request::voice_gender::FEMININE;
     auto voices = client.getVoiceList(voiceListRequest);
@@ -119,10 +113,22 @@ bool testTTSWithStreaming(cartesiapp::Cartesia& client) {
     ttsRequest.output_format.sample_rate = cartesiapp::request::sample_rate::SR_48000;
     ttsRequest.generation_config.volume = 1.0f;
     ttsRequest.model_id = cartesiapp::request::tts_model::SONIC_3;
-    ttsRequest.continue_ = false;
+    ttsRequest.continue_ = false;    
+
+    std::shared_ptr<TTSResponseListener> listener = std::make_shared<TTSResponseListener>();
+
+    auto websocketClient = std::make_unique<cartesiapp::TTSWebsocketClient>(
+        client.getApiKey(),
+        client.getApiVersion());
+    websocketClient->registerTTSListener(listener);
+
+    if (!websocketClient->connectAndStart()) {
+        spdlog::error("Failed to connect and start TTS WebSocket client.");
+        return false;
+    }
 
     std::chrono::high_resolution_clock::time_point startTime = std::chrono::high_resolution_clock::now();
-    if (!client.requestTTS(ttsRequest)) {
+    if (!websocketClient->requestTTS(ttsRequest)) {
         spdlog::error("Failed to send TTS request.");
         return false;
     }
@@ -136,7 +142,7 @@ bool testTTSWithStreaming(cartesiapp::Cartesia& client) {
     auto durationToFirstByte = std::chrono::duration_cast<std::chrono::milliseconds>(firstByteTime - startTime).count();
     spdlog::info("Time from request start to first audio byte received: {} ms", durationToFirstByte);
 
-    client.unregisterTTSListener();
+    websocketClient->unregisterTTSListener();
 
     return true;
 }
