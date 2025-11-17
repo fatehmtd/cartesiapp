@@ -1,0 +1,95 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+env:
+  BUILD_TYPE: Release
+
+jobs:
+  create-release:
+    runs-on: ubuntu-latest
+    outputs:
+      upload_url: ${{ steps.create_release.outputs.upload_url }}
+    steps:
+    - name: Create Release
+      id: create_release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ github.ref }}
+        release_name: CartesiaPP ${{ github.ref }}
+        draft: false
+        prerelease: false
+
+  build-and-upload:
+    needs: create-release
+    strategy:
+      matrix:
+        os: [windows-latest, ubuntu-latest, macos-latest]
+        include:
+          - os: windows-latest
+            asset_name: cartesiapp-windows
+            asset_path: build/samples/Release/*.exe
+          - os: ubuntu-latest
+            asset_name: cartesiapp-linux
+            asset_path: build/samples/CartesiaPP_Sample_*
+          - os: macos-latest
+            asset_name: cartesiapp-macos
+            asset_path: build/samples/CartesiaPP_Sample_*
+            
+    runs-on: ${{ matrix.os }}
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup vcpkg (Windows)
+      if: matrix.os == 'windows-latest'
+      run: |
+        git clone https://github.com/Microsoft/vcpkg.git
+        .\vcpkg\bootstrap-vcpkg.bat
+        .\vcpkg\vcpkg.exe integrate install
+        .\vcpkg\vcpkg.exe install boost-beast spdlog nlohmann-json openssl
+
+    - name: Setup vcpkg (Unix)
+      if: matrix.os != 'windows-latest'
+      run: |
+        git clone https://github.com/Microsoft/vcpkg.git
+        ./vcpkg/bootstrap-vcpkg.sh
+        sudo ./vcpkg/vcpkg integrate install
+        ./vcpkg/vcpkg install boost-beast spdlog nlohmann-json openssl
+
+    - name: Configure CMake
+      run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DCMAKE_TOOLCHAIN_FILE=${{github.workspace}}/vcpkg/scripts/buildsystems/vcpkg.cmake
+
+    - name: Build
+      run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}}
+
+    - name: Package artifacts (Windows)
+      if: matrix.os == 'windows-latest'
+      run: |
+        mkdir release
+        copy build\samples\Release\*.exe release\
+        copy build\lib\cartesiapp\Release\cartesiapp.lib release\
+        tar -czf ${{ matrix.asset_name }}.tar.gz -C release .
+
+    - name: Package artifacts (Unix)
+      if: matrix.os != 'windows-latest'
+      run: |
+        mkdir release
+        cp build/samples/CartesiaPP_Sample_* release/ || true
+        cp build/lib/cartesiapp/libcartesiapp.a release/
+        tar -czf ${{ matrix.asset_name }}.tar.gz -C release .
+
+    - name: Upload Release Asset
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ needs.create-release.outputs.upload_url }}
+        asset_path: ./${{ matrix.asset_name }}.tar.gz
+        asset_name: ${{ matrix.asset_name }}.tar.gz
+        asset_content_type: application/gzip
