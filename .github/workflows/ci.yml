@@ -38,12 +38,12 @@ jobs:
     - name: Install dependencies (Windows)
       if: matrix.os == 'windows-latest'
       run: |
-        .\vcpkg\vcpkg.exe install boost-beast spdlog nlohmann-json openssl
+        .\vcpkg\vcpkg.exe install
 
     - name: Install dependencies (Unix)
       if: matrix.os != 'windows-latest'
       run: |
-        ./vcpkg/vcpkg install boost-beast spdlog nlohmann-json openssl
+        ./vcpkg/vcpkg install
 
     - name: Configure CMake (Windows)
       if: matrix.os == 'windows-latest'
