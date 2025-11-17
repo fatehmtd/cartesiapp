@@ -24,7 +24,7 @@ bool testTTSWithStreaming(cartesiapp::Cartesia& client) {
     spdlog::info("Type: {}", response.type);
     spdlog::info("Request ID: {}", response.request_id);
     spdlog::info("Transcribed Text: {}", response.text);
-    spdlog::info("Language: {}", response.language);
+    spdlog::info("Language: {}", response.language.has_value() ? response.language.value() : "N/A");
     spdlog::info("Duration: {} seconds", response.duration);
     spdlog::info("Is Final: {}", response.is_final);
 

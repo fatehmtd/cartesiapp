@@ -7,7 +7,7 @@
 
 using namespace cartesiapp;
 
-cartesiapp::Cartesia::Cartesia(const std::string& apiKey, const std::string& apiVersion)
+cartesiapp::Cartesia::Cartesia(const std::string& apiKey, const std::string& apiVersion): _apiKey(apiKey)
 {
     _clientImpl = std::make_unique<CartesiaClientImpl>(apiKey, apiVersion, false);
 }
@@ -26,6 +26,11 @@ cartesiapp::Cartesia::~Cartesia()
 void cartesiapp::Cartesia::overrideApiVersion(const std::string& apiVersion)
 {
     _clientImpl->overrideApiVersion(apiVersion);
+}
+
+std::string cartesiapp::Cartesia::getApiKey() const
+{
+    return _apiKey;
 }
 
 std::string cartesiapp::Cartesia::getApiVersion() const

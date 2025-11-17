@@ -28,7 +28,7 @@ Voice cartesiapp::response::Voice::fromJson(const std::string& jsonStr)
     if (jsonObj.contains("embedding") && !jsonObj["embedding"].is_null()) {
         voice.embedding = std::move(jsonObj["embedding"].get<std::vector<int>>());
     }
-    if( jsonObj.contains("is_starred") && !jsonObj["is_starred"].is_null()) {
+    if (jsonObj.contains("is_starred") && !jsonObj["is_starred"].is_null()) {
         voice.is_starred = jsonObj["is_starred"].get<bool>();
     }
     voice.language = std::move(jsonObj["language"].get<std::string>());
@@ -62,11 +62,13 @@ cartesiapp::response::stt::TranscriptionResponse cartesiapp::response::stt::Tran
     TranscriptionResponse sttResponse;
     sttResponse.type = std::move(jsonObj["type"].get<std::string>());
     sttResponse.text = std::move(jsonObj["text"].get<std::string>());
-    sttResponse.language = std::move(jsonObj["language"].get<std::string>());
+    if (jsonObj.contains("language") && !jsonObj["language"].is_null()) {
+        sttResponse.language = std::move(jsonObj["language"].get<std::string>());
+    }
     sttResponse.duration = jsonObj["duration"].get<float>();
     sttResponse.is_final = jsonObj["is_final"].get<bool>();
     sttResponse.request_id = std::move(jsonObj["request_id"].get<std::string>());
-    
+
     for (const auto& wordJson : jsonObj["words"]) {
         sttResponse.words.push_back(WordTiming::fromJson(wordJson.dump()));
     }
@@ -136,7 +138,7 @@ cartesiapp::response::tts::WordTimestampsResponse cartesiapp::response::tts::Wor
     if (jsonObj.contains("context_id") && !jsonObj["context_id"].is_null()) {
         wordTimestampsResponse.context_id = std::move(jsonObj["context_id"].get<std::string>());
     }
-    
+
     // Based on header definition, word_timestamps is a vector, so parse as array
     for (const auto& timestampJson : jsonObj["word_timestamps"]) {
         wordTimestampsResponse.word_timestamps.push_back(WordTimestamps::fromJson(timestampJson.dump()));
@@ -164,7 +166,7 @@ cartesiapp::response::tts::PhonemeTimestampsResponse cartesiapp::response::tts::
     if (jsonObj.contains("context_id") && !jsonObj["context_id"].is_null()) {
         phonemeTimestampsResponse.context_id = std::move(jsonObj["context_id"].get<std::string>());
     }
-    
+
     // Based on header definition, phoneme_timestamps is a single object
     phonemeTimestampsResponse.phoneme_timestamps = PhonemeTimestamps::fromJson(jsonObj["phoneme_timestamps"].dump());
     return phonemeTimestampsResponse;

@@ -67,7 +67,7 @@ namespace cartesiapp::response {
         struct CARTESIAPP_EXPORT TranscriptionResponse {
             std::string type;
             std::string text;
-            std::string language;
+            std::optional<std::string> language;
             float duration;
             std::string request_id;
             bool is_final;

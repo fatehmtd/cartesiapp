@@ -656,6 +656,7 @@ namespace cartesiapp {
             bool verifyCertificates,
             const std::string& endpoint) :
             _apiKey(apiKey),
+            _endpoint(endpoint),
             _apiVersion(apiVersion),
             _resolver(_ioContext),
             _sslContext(ssl::context::tls_client),
@@ -666,6 +667,10 @@ namespace cartesiapp {
 
         ~WebsocketClientImpl() {
             disconnectAndStop();
+        }
+
+        bool isConnectedAndStarted() const {
+            return _websocket.is_open() && !_shouldStopFlag.load();
         }
 
         bool sendText(const std::string& text) {
@@ -700,12 +705,9 @@ namespace cartesiapp {
 
         bool disconnectAndStop() {
             // check if websocket is already disconnected
-            {
-                std::scoped_lock lock(_websocketMutex);
-                if (!_websocket.is_open() || _shouldStopFlag.load()) {
-                    spdlog::warn("disconnectWebsocket: WebSocket is already disconnected.");
-                    return false;
-                }
+            if (_isStoppedFlag.load()) {
+                spdlog::warn("disconnectWebsocket: WebSocket is already disconnected.");
+                return false;
             }
 
             // mark to stop the worker thread
@@ -756,6 +758,8 @@ namespace cartesiapp {
                 }
             }
 
+            _isStoppedFlag.store(true);
+
             return true;
         }
 
@@ -784,7 +788,7 @@ namespace cartesiapp {
                     beast::error_code ec;
                     _shouldStopFlag.store(false);
                     try {
-                        while (!_shouldStopFlag.load())
+                        while (!_shouldStopFlag.load() && _websocket.is_open())
                         {
                             size_t bytesRead = 0;
                             // check if websocket is still open and we should continue
@@ -805,40 +809,20 @@ namespace cartesiapp {
                                 ec = beast::error_code(net::error::operation_aborted, net::error::get_system_category());
                             }
 
-                            if (ec || _shouldStopFlag.load())
-                            {
-                                // Check for expected disconnection scenarios
-                                if (ec == beast::websocket::error::closed ||
-                                    ec == net::error::eof ||
-                                    ec == net::error::operation_aborted ||
-                                    ec == net::error::connection_aborted ||
-                                    ec == net::error::connection_reset)
-                                {
-                                    if (!_shouldStopFlag.load()) {
-                                        spdlog::warn("WebSocket closed by server or network error: {}", ec.message());
-                                        if (onDisconnectedCallback)
-                                        {
-                                            onDisconnectedCallback(ec.message());
-                                        }
-                                    }
-                                }
-                                else if (!_shouldStopFlag.load())
-                                {
-                                    spdlog::error("Error reading from WebSocket: {}, {}, {}", ec.message(), ec.value(), ec.category().name());
-                                    if (onErrorCallback)
-                                    {
-                                        onErrorCallback(ec.message());
-                                    }
-                                    if (onDisconnectedCallback)
-                                    {
-                                        onDisconnectedCallback(ec.message());
-                                    }
+                            if (_shouldStopFlag.load()) {
+                                if (onDisconnectedCallback) {
+                                    onDisconnectedCallback("WebSocket disconnected.");
                                 }
                                 break;
                             }
-
-                            // Only process data if we successfully read and haven't been asked to stop
-                            if (!ec && !_shouldStopFlag.load() && bytesRead > 0) {
+                            if (ec) {
+                                _shouldStopFlag.store(true);
+                                if (onErrorCallback) {
+                                    onErrorCallback(ec.message());
+                                    break;
+                                }
+                            }
+                            else {
                                 std::string data(beast::buffers_to_string(buffer.data()));
                                 buffer.consume(bytesRead);
                                 dataReadCallback(data);
@@ -847,17 +831,8 @@ namespace cartesiapp {
                     }
                     catch (std::exception& e)
                     {
-                        if (!_shouldStopFlag.load()) {
-                            spdlog::error("Error in data reception thread: {}", e.what());
-                            if (onErrorCallback) {
-                                onErrorCallback(e.what());
-                            }
-                            if (onDisconnectedCallback) {
-                                onDisconnectedCallback(e.what());
-                            }
-                        }
-                        else {
-                            spdlog::info("Exception during shutdown (expected): {}", e.what());
+                        if (onErrorCallback) {
+                            onErrorCallback(e.what());
                         }
                     }
                 });
@@ -915,6 +890,10 @@ namespace cartesiapp {
             const std::string& queryParams,
             bool verifyCertificates)
         {
+            if (_isStoppedFlag.load()) {
+                spdlog::warn("WebSocket connection attempt aborted because it is stopped.");
+                return false;
+            }
             try
             {
                 std::scoped_lock lock(_websocketMutex);
@@ -958,6 +937,8 @@ namespace cartesiapp {
                             req.set(header.first, header.second);
                         }
                     }));
+
+                spdlog::debug("Connecting to WebSocket endpoint: {}{}", _endpoint, queryParams);
                 _websocket.next_layer().set_verify_mode(ssl::verify_peer);
                 _websocket.next_layer().handshake(ssl::stream_base::handshake_type::client);
                 _websocket.handshake(cartesiapp::request::constants::HOST, _endpoint + queryParams);
@@ -978,6 +959,7 @@ namespace cartesiapp {
         bool _keepWebsocketRunning = false;
         std::thread _workerThread;
         std::atomic_bool _shouldStopFlag = false;
+        std::atomic_bool _isStoppedFlag = false;
         std::mutex _websocketMutex;
 
         // Boost.Asio components, mutable to allow modification in const methods that are exposed to users

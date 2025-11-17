@@ -59,8 +59,13 @@ namespace cartesiapp {
     class CARTESIAPP_EXPORT STTWebsocketClient {
         public:
         STTWebsocketClient(const std::string& apiKey,
+            const std::string& model,
+            const std::string& language,
+            const std::string& encoding,
+            int sampleRate,
+            float minVolume,
             const std::string& apiVersion = request::api_versions::LATEST);
-        virtual ~STTWebsocketClient() = default;
+        virtual ~STTWebsocketClient();
 
         /**
          * @brief Connects to the STT WebSocket and starts the data reception thread.
@@ -73,21 +78,26 @@ namespace cartesiapp {
         void disconnect();
 
         /**
+         * @brief Checks if the WebSocket is connected and the data reception thread is running.
+         */
+        bool isConnectedAndStarted() const;
+
+        /**
          * @brief Sends a done request to the STT service.
          */
-        void sendDoneRequest() const;
+        bool sendDoneRequest() const;
 
         /**
          * @brief Sends a flush request to the STT service.
          */
-        void sendFlushRequest() const;
+        bool sendFinalizeRequest() const;
 
         /**
          * @brief Writes audio bytes to the STT WebSocket.
          * @param data Pointer to the audio byte data.
          * @param size Size of the audio byte data.
          */
-        void writeAudioBytes(const char* data, size_t size) const;
+        bool writeAudioBytes(const char* data, size_t size) const;
 
         /**
          * @brief Registers an STT response listener.
@@ -103,6 +113,13 @@ namespace cartesiapp {
         private:
         std::unique_ptr<WebsocketClientImpl> _websocketClientImpl;
         std::weak_ptr<STTResponseListener> _sttListener;
+        std::string _model;
+        std::string _language;
+        std::string _encoding;
+        int _sampleRate;
+        float _minVolume;
+        std::string _apiVersion;
+        std::string _apiKey;
     };
 }
 

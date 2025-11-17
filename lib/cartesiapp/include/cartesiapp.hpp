@@ -49,6 +49,12 @@ namespace cartesiapp {
         void overrideApiVersion(const std::string& apiVersion);
 
         /**
+         * @brief Retrieves the current API key being used.
+         * @return The API key string.
+         */
+        std::string getApiKey() const;
+
+        /**
          * @brief Retrieves the current API version being used.
          * @return The API version string.
          */
@@ -157,6 +163,7 @@ namespace cartesiapp {
         std::unique_ptr<CartesiaClientImpl> _clientImpl;
         std::weak_ptr<TTSResponseListener> _ttsListener;
         std::weak_ptr<STTResponseListener> _sttListener;
+        std::string _apiKey;
     };
 
     /**

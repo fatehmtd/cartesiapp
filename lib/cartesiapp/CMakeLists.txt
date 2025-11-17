@@ -51,7 +51,9 @@ add_library(cartesiapp STATIC
     src/cartesiapp.cpp
     src/cartesiapp_request.cpp
     src/cartesiapp_response.cpp
+    src/streaming_stt.cpp
     include/cartesiapp.hpp
+    include/streaming_stt.hpp
 )
 
 target_include_directories(cartesiapp PRIVATE
