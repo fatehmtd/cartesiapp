@@ -9,7 +9,7 @@
  * - Manage streaming contexts
  */
 
-#include <streaming_tts.hpp>
+#include <cartesiapp/streaming_tts.hpp>
 #include <cstdlib>
 #include <iostream>
 #include <spdlog/spdlog.h>

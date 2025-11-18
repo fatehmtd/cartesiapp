@@ -9,7 +9,7 @@
  * - Implement custom STT response listeners
  */
 
-#include <streaming_stt.hpp>
+#include <cartesiapp/streaming_stt.hpp>
 #include <cstdlib>
 #include <iostream>
 #include <spdlog/spdlog.h>

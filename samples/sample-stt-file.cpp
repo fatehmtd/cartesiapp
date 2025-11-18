@@ -8,7 +8,7 @@
  * - Handle various audio formats (MP3, WAV, etc.)
  */
 
-#include <cartesiapp.hpp>
+#include <cartesiapp/cartesiapp.hpp>
 #include <cstdlib>
 #include <iostream>
 #include <spdlog/spdlog.h>

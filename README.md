@@ -14,11 +14,61 @@ C++ wrapper for the Cartesia.io audio processing API. Supports text-to-speech sy
 
 Requires CMake 3.16+ and vcpkg for dependencies.
 
+### Building from Source
+
 ```bash
 git clone https://github.com/fatehmtd/cartesiapp.git
 cd cartesiapp
 cmake -B build -S . -DCMAKE_TOOLCHAIN_FILE=[vcpkg-root]/scripts/buildsystems/vcpkg.cmake
 cmake --build build
+```
+
+### Using as a Dependency
+
+#### CMake FetchContent
+
+Add CartesiaPP as a dependency in your CMake project:
+
+```cmake
+include(FetchContent)
+
+FetchContent_Declare(
+    cartesiapp
+    GIT_REPOSITORY https://github.com/fatehmtd/cartesiapp.git
+    GIT_TAG        main  # or specify a specific tag/commit
+)
+
+FetchContent_MakeAvailable(cartesiapp)
+
+# Link to your target
+target_link_libraries(your_target PRIVATE cartesiapp)
+```
+
+#### Git Submodule
+
+Add CartesiaPP as a git submodule:
+
+```bash
+# Add as submodule
+git submodule add https://github.com/fatehmtd/cartesiapp.git deps/cartesiapp
+git submodule update --init --recursive
+
+# In your CMakeLists.txt
+add_subdirectory(deps/cartesiapp)
+target_link_libraries(your_target PRIVATE cartesiapp)
+```
+
+#### vcpkg (if available)
+
+```bash
+vcpkg install cartesiapp
+```
+
+Then in your CMakeLists.txt:
+
+```cmake
+find_package(cartesiapp CONFIG REQUIRED)
+target_link_libraries(your_target PRIVATE cartesiapp::cartesiapp)
 ```
 
 ## Usage
@@ -32,7 +82,10 @@ export CARTESIA_API_KEY=your_api_key_here
 ### Basic Text-to-Speech (Bytes)
 
 ```cpp
-#include <cartesiapp.hpp>
+### Basic Text-to-Speech (Bytes)
+
+```cpp
+#include <cartesiapp/cartesiapp.hpp>
 
 cartesiapp::Cartesia client(apiKey);
 
@@ -60,7 +113,7 @@ outFile.write(audioData.data(), audioData.size());
 ### Streaming Text-to-Speech
 
 ```cpp
-#include <streaming_tts.hpp>
+#include <cartesiapp/streaming_tts.hpp>
 
 class MyTTSListener : public cartesiapp::TTSResponseListener {
 public:
@@ -103,7 +156,7 @@ for (const auto& word : response.words) {
 ### Streaming Speech-to-Text
 
 ```cpp
-#include <streaming_stt.hpp>
+#include <cartesiapp/streaming_stt.hpp>
 
 class MySTTListener : public cartesiapp::STTResponseListener {
 public:
@@ -286,5 +339,3 @@ Contributions are welcome! See the missing features above for areas where help i
 ## License
 
 See [LICENSE](LICENSE) file for details.
- 
- 
