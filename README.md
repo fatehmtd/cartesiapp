@@ -171,89 +171,89 @@ Each sample includes detailed logging and error handling to help you understand 
 
 CartesiaPP currently implements a subset of the full Cartesia API. Here's what's supported:
 
-### ✅ Implemented Features
+### âœ… Implemented Features
 
 #### Core API
 
-- ✅ API status and version checking
-- ✅ Authentication via API keys
-- ✅ Multiple API version support (2024-06-10, 2024-11-13, 2025-04-16)
+- âœ… API status and version checking
+- âœ… Authentication via API keys
+- âœ… Multiple API version support (2024-06-10, 2024-11-13, 2025-04-16)
 
 #### Text-to-Speech (TTS)
 
-- ✅ Byte-based synthesis (REST API)
-- ✅ Real-time streaming synthesis (WebSocket)
-- ✅ Voice selection and management
-- ✅ Multiple output formats (WAV, MP3, PCM)
-- ✅ Audio encoding options (PCM_S16LE, PCM_F32LE, PCM_MULAW, PCM_ALAW)
-- ✅ Sample rate configuration (8kHz to 48kHz)
-- ✅ Emotion control (50+ emotions supported)
-- ✅ Speed and volume adjustment
-- ✅ Context management for streaming
-- ✅ Word and phoneme timestamp support
-- ✅ Multiple TTS models (Sonic-3, Sonic-2)
+- âœ… Byte-based synthesis (REST API)
+- âœ… Real-time streaming synthesis (WebSocket)
+- âœ… Voice selection and management
+- âœ… Multiple output formats (WAV, MP3, PCM)
+- âœ… Audio encoding options (PCM_S16LE, PCM_F32LE, PCM_MULAW, PCM_ALAW)
+- âœ… Sample rate configuration (8kHz to 48kHz)
+- âœ… Emotion control (50+ emotions supported)
+- âœ… Speed and volume adjustment
+- âœ… Context management for streaming
+- âœ… Word and phoneme timestamp support
+- âœ… Multiple TTS models (Sonic-3, Sonic-2)
 
 #### Speech-to-Text (STT)
 
-- ✅ Batch transcription from files
-- ✅ Batch transcription from byte arrays
-- ✅ Real-time streaming transcription (WebSocket)
-- ✅ Multiple audio formats support
-- ✅ Word-level timestamps
-- ✅ Language specification
-- ✅ Audio encoding configuration
-- ✅ INK-Whisper model support
+- âœ… Batch transcription from files
+- âœ… Batch transcription from byte arrays
+- âœ… Real-time streaming transcription (WebSocket)
+- âœ… Multiple audio formats support
+- âœ… Word-level timestamps
+- âœ… Language specification
+- âœ… Audio encoding configuration
+- âœ… INK-Whisper model support
 
 #### Voice Management
 
-- ✅ List available voices with filtering
-- ✅ Voice details retrieval
-- ✅ Gender-based filtering
-- ✅ Owner/starred voice filtering
-- ✅ Pagination support
+- âœ… List available voices with filtering
+- âœ… Voice details retrieval
+- âœ… Gender-based filtering
+- âœ… Owner/starred voice filtering
+- âœ… Pagination support
 
-### ❌ Missing Features (TODO)
+### âŒ Missing Features (TODO)
 
 #### Voice Cloning & Management
 
-- ❌ Voice cloning from audio samples
-- ❌ Custom voice creation and upload
-- ❌ Voice deletion
-- ❌ Voice sharing and privacy controls
-- ❌ Voice embedding management
+- âŒ Voice cloning from audio samples
+- âŒ Custom voice creation and upload
+- âŒ Voice deletion
+- âŒ Voice sharing and privacy controls
+- âŒ Voice embedding management
 
 #### Advanced TTS Features
 
-- ❌ Server-Sent Events (SSE) streaming
-- ❌ Pronunciation dictionary support
-- ❌ Voice embedding mode
-- ❌ Advanced generation controls (pitch, emphasis)
-- ❌ Multi-speaker synthesis
+- âŒ Server-Sent Events (SSE) streaming
+- âŒ Pronunciation dictionary support
+- âŒ Voice embedding mode
+- âŒ Advanced generation controls (pitch, emphasis)
+- âŒ Multi-speaker synthesis
 
 #### Advanced STT Features
 
-- ❌ Language auto-detection
-- ❌ Custom vocabulary/models
-- ❌ Confidence scores
-- ❌ Speaker diarization
-- ❌ Advanced audio preprocessing
+- âŒ Language auto-detection
+- âŒ Custom vocabulary/models
+- âŒ Confidence scores
+- âŒ Speaker diarization
+- âŒ Advanced audio preprocessing
 
 #### Conversation Agents
 
-- ❌ Agent creation and management
-- ❌ Agent deployment
-- ❌ Phone number integration
-- ❌ Webhook configuration
-- ❌ Conversation metrics and analytics
-- ❌ Git repository integration
+- âŒ Agent creation and management
+- âŒ Agent deployment
+- âŒ Phone number integration
+- âŒ Webhook configuration
+- âŒ Conversation metrics and analytics
+- âŒ Git repository integration
 
 #### Enterprise Features
 
-- ❌ Usage analytics and metrics
-- ❌ Rate limiting information
-- ❌ Billing and quota management
-- ❌ Team/organization management
-- ❌ Audit logging
+- âŒ Usage analytics and metrics
+- âŒ Rate limiting information
+- âŒ Billing and quota management
+- âŒ Team/organization management
+- âŒ Audit logging
 
 ### Roadmap
 
