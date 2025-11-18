@@ -1,6 +1,6 @@
 # CartesiaPP
 
-C++ wrapper for the Cartesia.io audio processing API. Supports text-to-speech synthesis and speech-to-text transcription via REST and WebSocket connections.
+C++ wrapper for the Cartesia.ai audio processing API. Supports text-to-speech synthesis and speech-to-text transcription via REST and WebSocket connections.
 
 ## Features
 
