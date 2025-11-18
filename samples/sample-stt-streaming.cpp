@@ -51,7 +51,7 @@ class STTResponseListener :
 
         if (response.is_final) {
             spdlog::info("Final transcription received, stopping...");
-            //_stopFlag.store(true);
+            _stopFlag.store(true);
         }
     }
 
@@ -176,7 +176,7 @@ int main(int ac, char** av) {
     cartesiapp::response::ApiInfo apiInfo = client.getApiInfo();
     spdlog::info("API Version: {}, Status OK: {}", apiInfo.version, apiInfo.ok);
 
-    std::string audioFilePath = "../data/sample_audio.wav";
+    std::string audioFilePath = "../data/tts_output.wav";
     if (!testSTTWithStreaming(client, audioFilePath)) {
         return -1;
     }
