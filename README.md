@@ -14,11 +14,61 @@ C++ wrapper for the Cartesia.io audio processing API. Supports text-to-speech sy
 
 Requires CMake 3.16+ and vcpkg for dependencies.
 
+### Building from Source
+
 ```bash
 git clone https://github.com/fatehmtd/cartesiapp.git
 cd cartesiapp
 cmake -B build -S . -DCMAKE_TOOLCHAIN_FILE=[vcpkg-root]/scripts/buildsystems/vcpkg.cmake
 cmake --build build
+```
+
+### Using as a Dependency
+
+#### CMake FetchContent
+
+Add CartesiaPP as a dependency in your CMake project:
+
+```cmake
+include(FetchContent)
+
+FetchContent_Declare(
+    cartesiapp
+    GIT_REPOSITORY https://github.com/fatehmtd/cartesiapp.git
+    GIT_TAG        main  # or specify a specific tag/commit
+)
+
+FetchContent_MakeAvailable(cartesiapp)
+
+# Link to your target
+target_link_libraries(your_target PRIVATE cartesiapp)
+```
+
+#### Git Submodule
+
+Add CartesiaPP as a git submodule:
+
+```bash
+# Add as submodule
+git submodule add https://github.com/fatehmtd/cartesiapp.git deps/cartesiapp
+git submodule update --init --recursive
+
+# In your CMakeLists.txt
+add_subdirectory(deps/cartesiapp)
+target_link_libraries(your_target PRIVATE cartesiapp)
+```
+
+#### vcpkg (if available)
+
+```bash
+vcpkg install cartesiapp
+```
+
+Then in your CMakeLists.txt:
+
+```cmake
+find_package(cartesiapp CONFIG REQUIRED)
+target_link_libraries(your_target PRIVATE cartesiapp::cartesiapp)
 ```
 
 ## Usage
