@@ -82,7 +82,10 @@ export CARTESIA_API_KEY=your_api_key_here
 ### Basic Text-to-Speech (Bytes)
 
 ```cpp
-#include <cartesiapp.hpp>
+### Basic Text-to-Speech (Bytes)
+
+```cpp
+#include <cartesiapp/cartesiapp.hpp>
 
 cartesiapp::Cartesia client(apiKey);
 
@@ -110,7 +113,7 @@ outFile.write(audioData.data(), audioData.size());
 ### Streaming Text-to-Speech
 
 ```cpp
-#include <streaming_tts.hpp>
+#include <cartesiapp/streaming_tts.hpp>
 
 class MyTTSListener : public cartesiapp::TTSResponseListener {
 public:
@@ -153,7 +156,7 @@ for (const auto& word : response.words) {
 ### Streaming Speech-to-Text
 
 ```cpp
-#include <streaming_stt.hpp>
+#include <cartesiapp/streaming_stt.hpp>
 
 class MySTTListener : public cartesiapp::STTResponseListener {
 public:

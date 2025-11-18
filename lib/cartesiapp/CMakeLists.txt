@@ -53,13 +53,13 @@ add_library(cartesiapp STATIC
     src/cartesiapp_response.cpp
     src/streaming_stt.cpp
     src/streaming_tts.cpp
-    include/cartesiapp.hpp
-    include/streaming_stt.hpp
-    include/streaming_tts.hpp
+    include/cartesiapp/cartesiapp.hpp
+    include/cartesiapp/streaming_stt.hpp
+    include/cartesiapp/streaming_tts.hpp
 )
 
 target_include_directories(cartesiapp PRIVATE
-    ./include
+    ./include/cartesiapp
 )
 
 target_link_libraries(cartesiapp
@@ -78,10 +78,9 @@ generate_export_header(cartesiapp
 )
 
 target_include_directories(cartesiapp PUBLIC
-    $<INSTALL_INTERFACE:include> # For installed package (optional but good practice)
-    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include> # For direct build
+    $<INSTALL_INTERFACE:include> # For installed package
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include> # For direct build - users will include as <cartesiapp/header.hpp>
     $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}> # To export the symbols header
-    #PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include/gladiapp # to simplify the internal include files
 )
 
 # Installation rules
@@ -92,7 +91,7 @@ install(TARGETS cartesiapp
     ARCHIVE DESTINATION lib
     INCLUDES DESTINATION include)
 
-install(DIRECTORY include/
+install(DIRECTORY include/cartesiapp/
     DESTINATION include/cartesiapp
     FILES_MATCHING PATTERN "*.hpp"
     PATTERN "impl" EXCLUDE)

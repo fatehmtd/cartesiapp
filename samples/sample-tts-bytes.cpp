@@ -8,7 +8,7 @@
  * - Generate audio as bytes and save to file
  */
 
-#include <cartesiapp.hpp>
+#include <cartesiapp/cartesiapp.hpp>
 #include <cstdlib>
 #include <iostream>
 #include <spdlog/spdlog.h>
