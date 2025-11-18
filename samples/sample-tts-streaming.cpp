@@ -79,7 +79,7 @@ class TTSResponseListener : public cartesiapp::TTSResponseListener {
         auto durationToFirstByte = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - firstByteTimestamp()).count();
         spdlog::info("total audio duration: {} ms", durationToFirstByte);
 
-        //_stopFlag.store(true);
+        _stopFlag.store(true);
         _audioOutputFile.close();
     }
 

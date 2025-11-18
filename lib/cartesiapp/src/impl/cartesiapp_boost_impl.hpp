@@ -476,7 +476,6 @@ namespace cartesiapp {
             {
                 try {
                     beast::error_code ec;
-                    std::scoped_lock lock(_websocketMutex);
                     // Shutdown the underlying TCP socket to interrupt any blocking read operations
                     beast::get_lowest_layer(_websocket).close(ec);
                     if (ec) {
@@ -504,7 +503,6 @@ namespace cartesiapp {
             {
                 try {
                     beast::error_code ec;
-                    std::scoped_lock lock(_websocketMutex);
                     if (_websocket.is_open()) {
                         _websocket.close(beast::websocket::close_code::normal, ec);
                         if (ec && ec != beast::websocket::error::closed && ec != net::error::eof) {
@@ -550,13 +548,11 @@ namespace cartesiapp {
                         while (!_shouldStopFlag.load() && _websocket.is_open())
                         {
                             size_t bytesRead = 0;
+
                             // check if websocket is still open and we should continue
-                            {
-                                std::scoped_lock lock(_websocketMutex);
-                                if (!_websocket.is_open() || _shouldStopFlag.load()) {
-                                    spdlog::warn("WebSocket is no longer open or stop requested, stopping data reception thread.");
-                                    break;
-                                }
+                            if (!_websocket.is_open() || _shouldStopFlag.load()) {
+                                spdlog::warn("WebSocket is no longer open or stop requested, stopping data reception thread.");
+                                break;
                             }
 
                             // read data from websocket                    
@@ -655,7 +651,6 @@ namespace cartesiapp {
             }
             try
             {
-                std::scoped_lock lock(_websocketMutex);
                 if (_websocket.is_open()) {
                     spdlog::warn("WebSocket is already connected.");
                     return true;
@@ -719,7 +714,6 @@ namespace cartesiapp {
         std::thread _workerThread;
         std::atomic_bool _shouldStopFlag = false;
         std::atomic_bool _isStoppedFlag = false;
-        std::mutex _websocketMutex;
 
         // Boost.Asio components, mutable to allow modification in const methods that are exposed to users
         mutable ssl::context _sslContext;
