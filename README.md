@@ -286,5 +286,3 @@ Contributions are welcome! See the missing features above for areas where help i
 ## License
 
 See [LICENSE](LICENSE) file for details.
- 
- 
