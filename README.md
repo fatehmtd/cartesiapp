@@ -1,3 +1,7 @@
+<div align="center">
+  <img src="cartesiapp.png" alt="CartesiaPP Logo" style="background-color: white; padding: 20px; border-radius: 10px;" width="800">
+</div>
+
 # CartesiaPP
 
 C++ wrapper for the Cartesia.ai audio processing API. Supports text-to-speech synthesis and speech-to-text transcription via REST and WebSocket connections.
