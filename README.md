@@ -1,6 +1,6 @@
-<div align="center">
-  <img src="cartesiapp.png" alt="CartesiaPP Logo" style="background-color: white; padding: 20px; border-radius: 10px;" width="800">
-</div>
+<p align="center">
+  <img src="cartesiapp.png" alt="CartesiaPP Logo" width="800">
+</p>
 
 # CartesiaPP
 
